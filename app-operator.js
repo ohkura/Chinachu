@@ -338,7 +338,31 @@ function doRecord(program) {
 					}
 				}
 			}
-			
+
+			// MP4への変換用コマンドが登録されていれば実行
+			if (config.mp4ConversionCommand) {
+				var mp4Path = config.mp4Dir + chinachu.formatRecordedName(program, config.mp4Format);
+				var mp4_created = function () {
+					util.log('MP4 CREATED: ' + mp4Path);
+					for (i = 0, l = reserves.length; i < l; i++) {
+						if (reserves[i].id === program.id) {
+							program.mp4 = mp4Path;
+						}
+					}
+					fs.writeFileSync(RECORDED_DATA_FILE, JSON.stringify(recorded));
+					util.log('WRITE: ' + RECORDED_DATA_FILE);
+				}
+				var mp4Process = child_process.spawn(config.mp4ConversionCommand, [recPath, mp4Path, JSON.stringify(program)]);
+				util.log('SPAWN: ' + config.mp4ConversionCommand + ' (pid=' + mp4Process.pid + ')');
+				mp4Process.stdout.on('data', function (data) {
+					util.log('stderr:' + program.id + ' ' + data);
+				});
+				mp4Process.stderr.on('data', function (data) {
+					// util.log('stderr:' + program.id + ' ' + data);
+				});
+				mp4Process.on('exit', mp4_created);
+			}
+
 			// ポストプロセス
 			if (config.recordedCommand) {
 				postProcess = child_process.spawn(config.recordedCommand, [recPath, JSON.stringify(program)]);
