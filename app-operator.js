@@ -345,7 +345,7 @@ function doRecord(program) {
 				var mp4_created = function () {
 					util.log('MP4 CREATED: ' + mp4Path);
 					for (i = 0, l = reserves.length; i < l; i++) {
-						if (reserves[i].id === program.id) {
+						if (recorded[i].id === program.id) {
 							program.mp4 = mp4Path;
 						}
 					}
