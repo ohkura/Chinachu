@@ -234,6 +234,15 @@ P = Class.create(P, {
 				disableClose: true
 			}).render(this.view.content);
 		}
+
+		if (program.mp4) {
+			new sakura.ui.Alert({
+				title       : 'MP4変換済み',
+				type        : 'green',
+				body        : program.mp4,
+				disableClose: true
+			}).render(this.view.content);
+		}
 		
 		var meta = new flagrate.Element('div', { 'class': 'program-meta' }).update(
 			' &ndash; ' +
