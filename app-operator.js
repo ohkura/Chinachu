@@ -344,9 +344,10 @@ function doRecord(program) {
 				var mp4Path = config.mp4Dir + chinachu.formatRecordedName(program, config.mp4Format);
 				var mp4_created = function () {
 					util.log('MP4 CREATED: ' + mp4Path);
-					for (i = 0, l = reserves.length; i < l; i++) {
+					util.log('MP4 CREATED: ' + JSON.stringify(program));
+					for (i = 0, l = recorded.length; i < l; i++) {
 						if (recorded[i].id === program.id) {
-							program.mp4 = mp4Path;
+							recorded[i].mp4 = mp4Path;
 						}
 					}
 					fs.writeFileSync(RECORDED_DATA_FILE, JSON.stringify(recorded));
@@ -358,7 +359,7 @@ function doRecord(program) {
 					util.log('stderr:' + program.id + ' ' + data);
 				});
 				mp4Process.stderr.on('data', function (data) {
-					// util.log('stderr:' + program.id + ' ' + data);
+					util.log('stderr:' + program.id + ' ' + data);
 				});
 				mp4Process.on('exit', mp4_created);
 			}
