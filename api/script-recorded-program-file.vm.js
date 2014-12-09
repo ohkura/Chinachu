@@ -67,6 +67,9 @@
 			response.head(200);
 			
 			fs.unlinkSync(program.recorded);
+		  if (program.mp4) {
+				fs.unlinkSync(program.mp4);
+			}
 			
 			if (request.type === 'json') {
 				response.end('{}');
