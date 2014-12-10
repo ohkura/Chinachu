@@ -344,7 +344,6 @@ function doRecord(program) {
 				var mp4Path = config.mp4Dir + chinachu.formatRecordedName(program, config.mp4Format);
 				var mp4_created = function () {
 					util.log('MP4 CREATED: ' + mp4Path);
-					util.log('MP4 CREATED: ' + JSON.stringify(program));
 					for (i = 0, l = recorded.length; i < l; i++) {
 						if (recorded[i].id === program.id) {
 							recorded[i].mp4 = mp4Path;
@@ -353,8 +352,10 @@ function doRecord(program) {
 					fs.writeFileSync(RECORDED_DATA_FILE, JSON.stringify(recorded));
 					util.log('WRITE: ' + RECORDED_DATA_FILE);
 				}
-				var mp4Process = child_process.spawn(config.mp4ConversionCommand, [recPath, mp4Path, JSON.stringify(program)]);
-				util.log('SPAWN: ' + config.mp4ConversionCommand + ' (pid=' + mp4Process.pid + ')');
+				var mp4ConversionCommand = config.mp4ConversionCommand.replace("<input>", recPath).replace("<output>", mp4Path);
+				util.log('ARGS:' + JSON.stringify(mp4ConversionCommand.split(' ').slice(1)));
+				var mp4Process = child_process.spawn(mp4ConversionCommand.split(' ')[0], mp4ConversionCommand.split(' ').slice(1));
+				util.log('SPAWN: ' + mp4ConversionCommand + ' (pid=' + mp4Process.pid + ')');
 				mp4Process.stdout.on('data', function (data) {
 					util.log('stderr:' + program.id + ' ' + data);
 				});
