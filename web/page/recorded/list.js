@@ -112,6 +112,11 @@ P = Class.create(P, {
 					label: '長さ',
 					width: 50,
 					align: 'center',
+				},
+				{
+					key  : 'remove_in',
+					label: '削除予定',
+					width: 60
 				}
 			],
 			onClick: function(e, row) {
@@ -283,12 +288,29 @@ P = Class.create(P, {
 			row.cell.datetime = {
 				sortAlt    : program.start,
 				element    : new chinachu.ui.DynamicTime({
-					tagName: 'div',
-					type   : 'full',
-					time   : program.start
+					tagName : 'div',
+					type    : 'full',
+					time    : program.start,
 				}).entity
 			};
-			
+
+			if (program.keep_days) {
+				var remove_at = program.start + (program.seconds + program.keep_days * 24 * 3600) * 1000;
+				row.cell.remove_in = {
+					sortAlt    : remove_at,
+					element    : new chinachu.ui.DynamicTime({
+						tagName: 'div',
+						type   : 'delta',
+						time   : remove_at
+					}).entity
+				}
+			} else {
+				row.cell.remove_in = {
+					sortAlt    : 0,
+					text       : "never"
+				};
+			};
+
 			rows.push(row);
 		});
 		
