@@ -1276,6 +1276,27 @@
 									}
 								},
 								{
+									key   : 'keep_days',
+									label : '保存する日数(0の場合削除しない)',
+									input: {
+										type     : 'number',
+										style    : { width: '60px' },
+										maxLength: 3,
+										max      : 365,
+										min      : 0,
+										val      : rule.keep_days
+									}
+								},
+								{
+									key   : 'convert_mp4',
+									label : 'MP4に変換',
+									input : {
+										type : 'checkbox',
+										label: '有効にする',
+										val  : rule.convert_mp4
+									}
+								},
+								{
 									key   : 'isEnabled',
 									label : 'ルールの状態',
 									input : {
@@ -1307,6 +1328,12 @@
 										}
 										if (!query.duration.min && !query.duration.max) {
 											delete query.duration;
+										}
+										if (!query.keep_days) {
+											delete query.keep_days;
+										}
+										if (!query.convert_mp4) {
+											delete query.convert_mp4;
 										}
 										
 										var i;
@@ -1502,6 +1529,24 @@
 							}
 						},
 						{
+							key   : 'keep_days',
+							label : '保存日数',
+							input : {
+								type : 'number',
+								style: { width: '80px' },
+								val  : 0
+							}
+						},
+						{
+							key   : 'convert_mp4',
+							label : 'MP4',
+							input : {
+								type : 'checkbox',
+								label: '有効にする',
+								val  : false
+							}
+						},
+						{
 							key   : 'isEnabled',
 							label : 'ルールの状態',
 							input : {
@@ -1533,6 +1578,9 @@
 								}
 								if (!query.duration.min && !query.duration.max) {
 									delete query.duration;
+								}
+								if (!query.keep_days) {
+									delete query.keep_days;
 								}
 
 								var i;
@@ -1731,6 +1779,24 @@
 							}
 						},
 						{
+							key   : 'keep_days',
+							label : '保存日数',
+							input : {
+								type : 'number',
+								style: { width: '80px' },
+								val  : 0
+							}
+						},
+						{
+							key   : 'convert_mp4',
+							label : 'MP4',
+							input : {
+								type : 'checkbox',
+								label: '有効にする',
+								val  : false
+							}
+						},
+						{
 							key   : 'isEnabled',
 							label : 'ルールの状態',
 							input : {
@@ -1738,7 +1804,7 @@
 								label: '有効にする',
 								val  : true
 							}
-						}
+						},
 					]
 				});
 				
@@ -1762,6 +1828,12 @@
 								}
 								if (!query.duration.min && !query.duration.max) {
 									delete query.duration;
+								}
+								if (!query.keep_days) {
+									delete query.keep_days;
+								}
+								if (!query.convert_mp4) {
+									delete query.convert_mp4;
 								}
 
 								var i;

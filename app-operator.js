@@ -340,7 +340,7 @@ function doRecord(program) {
 			}
 
 			// MP4への変換用コマンドが登録されていれば実行
-			if (config.mp4ConversionCommand) {
+			if (program.convert_mp4 && config.mp4ConversionCommand) {
 				var mp4Path = config.mp4Dir + chinachu.formatRecordedName(program, config.mp4Format);
 				var mp4_created = function (code) {
 					if (code != 0) {

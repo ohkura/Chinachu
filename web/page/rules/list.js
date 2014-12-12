@@ -245,6 +245,16 @@ P = Class.create(P, {
 				{
 					key  : 'ignore_descriptions',
 					label: '無視説明文'
+				},
+				{
+					key  : 'keep_days',
+					label: '保存日数',
+					width: 70
+				},
+				{
+					key  : 'convert_mp4',
+					label: 'MP4',
+					width: 50
 				}
 			],
 			onSelect  : this.updateToolbar.bind(this),
@@ -438,7 +448,33 @@ P = Class.create(P, {
 					text     : 'none'
 				};
 			}
-			
+
+			if (rule.keep_days) {
+				row.cell.keep_days = {
+					sortKey  : rule.keep_days || 0,
+					text     : rule.keep_days + "日"
+				};
+			} else {
+				row.cell.keep_days = {
+					className: 'default',
+					sortKey  : 0,
+					text     : 'none'
+				};
+			}
+
+			if (rule.convert_mp4) {
+				row.cell.convert_mp4 = {
+					sortKey  : rule.convert_mp4 || false,
+					text     : (rule.convert_mp4 ? "MP4" : "")
+				};
+			} else {
+				row.cell.convert_mp4 = {
+					className: 'default',
+					sortKey  : 0,
+					text     : 'none'
+				};
+			}
+
 			rows.push(row);
 		});
 		

@@ -199,8 +199,9 @@ function scheduler() {
 	
 	schedule.forEach(function (ch) {
 		ch.programs.forEach(function (p) {
-			if (chinachu.isMatchedProgram(rules, p)) {
-				matches.push(p);
+			var matched_program = chinachu.isMatchedProgram(rules, p);
+			if (matched_program != null) {
+				matches.push(matched_program);
 			}
 		});
 	});
