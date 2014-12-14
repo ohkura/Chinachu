@@ -11,10 +11,14 @@ function init() {
 	
 	if (program.tuner && program.tuner.isScrambling) return response.error(409);
 	
-	if (!fs.existsSync(program.recorded)) return response.error(410);
+	var filename = program.recorded;
+	if (request.query.ext == "mp4") {
+		filename = program.mp4;
+	}
+	if (!fs.existsSync(filename)) return response.error(410);
 	
 	// probing
-	child_process.exec('avprobe -v 0 -show_format -of json "' + program.recorded + '"', function (err, std) {
+	child_process.exec('avprobe -v 0 -show_format -of json "' + filename + '"', function (err, std) {
 		
 		if (err) {
 			return response.error(500);
@@ -93,6 +97,7 @@ function main(avinfo) {
 		case 'flv':
 		case 'webm':
 		case 'asf':
+		case 'mp4':
 			util.log('STREAMING: ' + request.url);
 			
 			var d = {
@@ -248,8 +253,13 @@ function main(avinfo) {
 			if (d['c:v'] === 'libvpx')  args.push('-deadline', 'realtime');
 			
 			args.push('-y', '-f', d.f, 'pipe:1');
-			
-			var readStream = fs.createReadStream(program.recorded, range || {});
+
+			var filename = program.recorded;
+			if (request.type == 'mp4') {
+				filename = program.mp4;
+			}
+
+			var readStream = fs.createReadStream(filename, range || {});
 			
 			request.on('close', function() {
 				readStream.destroy();

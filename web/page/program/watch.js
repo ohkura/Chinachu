@@ -213,7 +213,7 @@ P = Class.create(P, {
 						]
 					},
 					depends: [
-						{ key: 'ext', value: 'mp4' }
+						{ key: 'ext', value: 'flv' }
 					]
 				},
 				{
@@ -224,14 +224,14 @@ P = Class.create(P, {
 						isRequired: true,
 						items     : [
 							{
-								label     : 'H.264',
-								value     : 'libx264',
+								label     : '無変換',
+								value     : 'copy',
 								isSelected: true
-							}
+							},
 						]
 					},
 					depends: [
-						{ key: 'ext', value: 'flv' }
+						{ key: 'ext', value: 'mp4' }
 					]
 				},
 				{
@@ -293,7 +293,7 @@ P = Class.create(P, {
 						]
 					},
 					depends: [
-						{ key: 'ext', value: 'mp4' }
+						{ key: 'ext', value: 'flv' }
 					]
 				},
 				{
@@ -304,14 +304,14 @@ P = Class.create(P, {
 						isRequired: true,
 						items     : [
 							{
-								label     : 'AAC',
-								value     : 'libfdk_aac',
+								label     : '無変換',
+								value     : 'copy',
 								isSelected: true
-							}
+							},
 						]
 					},
 					depends: [
-						{ key: 'ext', value: 'flv' }
+						{ key: 'ext', value: 'mp4' }
 					]
 				},
 				{
@@ -343,12 +343,12 @@ P = Class.create(P, {
 							},
 							{
 								label     : '1280x720 (HD/16:9)',
-								value     : '1280x720',
-								isSelected: true
+								value     : '1280x720'
 							},
 							{
 								label     : '1920x1080 (FHD/16:9)',
-								value     : '1920x1080'
+								value     : '1920x1080',
+								isSelected: true
 							}
 						]
 					},
@@ -373,8 +373,7 @@ P = Class.create(P, {
 							},
 							{
 								label     : '1Mbps',
-								value     : '1M',
-								isSelected: true
+								value     : '1M'
 							},
 							{
 								label     : '2Mbps',
@@ -382,7 +381,8 @@ P = Class.create(P, {
 							},
 							{
 								label     : '3Mbps',
-								value     : '3M'
+								value     : '3M',
+								isSelected: true
 							}
 						]
 					},
@@ -407,8 +407,7 @@ P = Class.create(P, {
 							},
 							{
 								label     : '96kbps',
-								value     : '96k',
-								isSelected: true
+								value     : '96k'
 							},
 							{
 								label     : '128kbps',
@@ -416,7 +415,8 @@ P = Class.create(P, {
 							},
 							{
 								label     : '192kbps',
-								value     : '192k'
+								value     : '192k',
+								isSelected: true
 							}
 						]
 					},
@@ -433,6 +433,13 @@ P = Class.create(P, {
 				value     : 'm3u8',
 				isSelected: true
 			});
+
+			if (program.mp4) {
+				this.form.fields[0].input.items.push({
+					label     : 'MP4',
+					value     : 'mp4',
+				});
+			}
 		}
 		
 		if (!Prototype.Browser.MobileSafari) {
@@ -446,6 +453,14 @@ P = Class.create(P, {
 				value     : 'webm',
 				isSelected: true
 			});
+
+		  if (program.mp4) {
+			  this.form.fields[0].input.items.push({
+					label     : 'MP4',
+					value     : 'mp4',
+					isSelected: false
+			  });
+			}
 			
 			/* this.form.fields[0].input.items.push({
 				label     : 'FLV',
@@ -482,7 +497,7 @@ P = Class.create(P, {
 			
 			if (p._isRecording) return;
 			
-			if (d.ext === 'webm' || d.ext === 'm3u8') {
+			if (d.ext === 'webm' || d.ext === 'm3u8' || d.ext === 'mp4') {
 				if (video.paused) {
 					video.play();
 					control.getElementByKey('play').setLabel('Pause');
@@ -507,7 +522,7 @@ P = Class.create(P, {
 			'class': 'video-container'
 		}).insertTo(this.view.content);
 		
-		if (d.ext === 'webm' || d.ext === 'm3u8') {
+		if (d.ext === 'webm' || d.ext === 'm3u8' || d.ext === 'mp4') {
 			var video = new flagrate.Element('video', {
 				src     : getRequestURI(),
 				autoplay: true
@@ -515,7 +530,7 @@ P = Class.create(P, {
 			
 			video.addEventListener('click', togglePlay);
 			
-			//video.load();
+			// video.load();
 			video.volume = 1;
 		} else {
 			var vlc = flagrate.createElement('embed', {
@@ -590,7 +605,7 @@ P = Class.create(P, {
 			fastForward.disable();
 			fastRewind.disable();
 			
-			if (d.ext === 'webm') {
+			if (d.ext === 'webm' || d.ext === 'mp4') {
 				video.src = uri;
 			} else {
 				vlc.playlist.playItem(vlc.playlist.add(uri));
@@ -632,7 +647,7 @@ P = Class.create(P, {
 			
 			var vol = control.getElementByKey('vol');
 			
-			if (d.ext === 'webm' || d.ext === 'm3u8') {
+			if (d.ext === 'webm' || d.ext === 'm3u8' || d.ext === 'mp4') {
 				video.volume = vol.getValue() / 10;
 			} else {
 				vlc.audio.volume = vol.getValue() * 10;
@@ -647,7 +662,7 @@ P = Class.create(P, {
 			
 			var current = 0;
 			
-			if (d.ext === 'webm' || d.ext === 'm3u8') {
+			if (d.ext === 'webm' || d.ext === 'm3u8' || d.ext === 'mp4') {
 				current = video.currentTime;
 			} else {
 				if (vlc.playlist.isPlaying) {
