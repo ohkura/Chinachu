@@ -81,6 +81,7 @@ if (config.operTweeter && config.operTweeterAuth && config.operTweeterFormat) {
 //
 var schedulerProcessTime    = config.operSchedulerProcessTime    || 1000 * 60 * 20;//20分
 var schedulerIntervalTime   = config.operSchedulerIntervalTime   || 1000 * 60 * 60;//60分
+var autoDeleteCheckerIntervalTime = config.autoDeleteCheckerIntervalTime || 1000 * 60 * 60;//60分
 var schedulerSleepStartHour = config.operSchedulerSleepStartHour || 1;
 var schedulerSleepEndHour   = config.operSchedulerSleepEndHour   || 5;
 var schedulerEpgRecordTime  = config.schedulerEpgRecordTime      || 60;
@@ -92,6 +93,7 @@ var clock     = Date.now();
 var next      = 0;
 var scheduler = null;
 var scheduled = 0;
+var autoDeleteChecked = 0;
 
 // 録画コマンドのシリアライズ
 var operRecCmdSpan  = config.operRecCmdSpan || 0;
@@ -482,6 +484,23 @@ function recordingChecker(program, i) {
 	}, 0, 'KILLWAIT: ' + program.pid);
 }
 
+function autoDeleteChecker(program, i) {
+	if (program.keep_days) {
+		var length_in_seconds = (program.seconds + program.keep_days * 24 * 3600) * 1000
+		var remove_at = program.start + length_in_seconds;
+		if (Date.now() > new Date(remove_at)) {
+			if (fs.existsSync(program.recorded)) {
+				util.log('AUTO DELETE: ' + program.recorded);
+				fs.unlinkSync(program.recorded);
+			}
+			if (program.mp4 && fs.existsSync(program.mp4)) {
+				util.log('AUTO DELETE MP4: ' + program.recorded);
+				fs.unlinkSync(program.mp4);
+			}
+		}
+	}
+}
+
 // ファイル更新監視: ./data/reserves.json
 chinachu.jsonWatcher(
 	RESERVES_DATA_FILE,
@@ -536,6 +555,12 @@ function main() {
 			startScheduler();
 			scheduled = clock;
 		}
+
+		if (clock - autoDeleteChecked > autoDeleteCheckerIntervalTime) {
+			recorded.forEach(autoDeleteChecker);
+			autoDeleteChecked = clock;
+		}
+
 	} catch (e) {
 		util.error('ERROR: ' + e.stack);
 	}
