@@ -1,7 +1,6 @@
 P = Class.create(P, {
 	
 	init: function() {
-		
 		this.view.content.className = 'loading';
 		
 		this.initToolbar();
@@ -116,7 +115,7 @@ P = Class.create(P, {
 				{
 					key  : 'remove_in',
 					label: '削除予定',
-					width: 60
+					width: 100
 				}
 			],
 			onClick: function(e, row) {
@@ -155,6 +154,12 @@ P = Class.create(P, {
 					}
 				},
 				menuItems: [
+					{
+						label   : '自動削除しない...',
+						onSelect: function() {
+							new chinachu.ui.ClearKeepDays(program.id);
+						}
+					},
 					{
 						label   : '録画履歴の削除...',
 						icon    : './icons/eraser.png',
@@ -295,7 +300,8 @@ P = Class.create(P, {
 			};
 
 			if (program.keep_days) {
-				var remove_at = program.start + (program.seconds + program.keep_days * 24 * 3600) * 1000;
+				var length_in_seconds = (program.seconds + program.keep_days * 24 * 3600) * 1000
+				var remove_at = program.start + length_in_seconds;
 				row.cell.remove_in = {
 					sortAlt    : remove_at,
 					element    : new chinachu.ui.DynamicTime({

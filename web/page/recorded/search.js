@@ -157,6 +157,12 @@ P = Class.create(P, {
 				},
 				menuItems: [
 					{
+						label   : '自動削除しない...',
+						onSelect: function() {
+							new chinachu.ui.ClearKeepDays(program.id);
+						}
+					},
+					{
 						label   : '録画履歴の削除...',
 						icon    : './icons/eraser.png',
 						onSelect: function() {

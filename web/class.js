@@ -1101,6 +1101,60 @@
 			return this;
 		}
 	});
+
+	ui.ClearKeepDays = Class.create({
+		initialize: function _init(id) {
+			this.program = util.getProgramById(id);
+
+			this.create();
+			
+			return this;
+		},
+		create: function _create() {
+			this.modal = new flagrate.Modal({
+				title: '自動削除しない',
+				text : 'この番組は自動的に削除されなくなります。',
+				buttons: [
+					{
+						label  : '自動削除の停止',
+						color  : '@red',
+						onSelect: function (e, modal) {
+							e.targetButton.disable();
+							
+							var dummy = new Ajax.Request('./api/recorded/' + this.program.id + '/keep_days.json', {
+								method    : 'delete',
+								onComplete: function () {
+									modal.close();
+								},
+								onSuccess: function () {
+									new flagrate.Modal({
+										title: '成功',
+										text : '自動削除を停止しました'
+									}).show();
+								},
+								onFailure: function (t) {
+									new flagrate.Modal({
+										title: '失敗',
+										text : '失敗しました (' + t.status + ')'
+									}).show();
+								}
+							});
+						}.bind(this)
+					},
+					{
+						label  : 'キャンセル',
+						onSelect: function (e, modal) {
+							modal.close();
+						}
+					}
+				]
+			});
+			
+			this.modal.show();
+			
+			return this;
+		}
+	});
 	
 	ui.Streamer = Class.create({
 		initialize: function _init(id) {
