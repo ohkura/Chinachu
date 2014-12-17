@@ -39,6 +39,7 @@ var auth          = require('http-auth');
 var socketio      = require('socket.io');
 var chinachu      = require('chinachu-common');
 var S             = require('string');
+var Podcast       = require('podcast');
 
 // Directory Checking
 if (!fs.existsSync('./data/') || !fs.existsSync('./log/') || !fs.existsSync('./web/')) {
@@ -363,6 +364,7 @@ function httpServerMain(req, res, query) {
 		if (ext === 'asf') { type = 'video/x-ms-asf'; }
 		if (ext === 'json') { type = 'application/json; charset=utf-8'; }
 		if (ext === 'xspf') { type = 'application/xspf+xml'; }
+		if (ext === 'rss') { type = 'application/rss+xml; charset=utf-8';}
 		
 		var head = {
 			'Content-Type'             : type,
@@ -519,6 +521,7 @@ function httpServerMain(req, res, query) {
 				child_process: child_process,
 				Buffer       : Buffer,
 				zlib         : zlib,
+				Podcast      : Podcast,
 				chinachu     : chinachu,
 				config       : config,
 				define: {
