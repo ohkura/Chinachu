@@ -29,6 +29,46 @@ P = Class.create(P, {
 	initToolbar: function _initToolbar() {
 		
 		this.view.toolbar.add({
+			key: 'enable-multiselect',
+			ui : new sakura.ui.Button({
+				label  : '{0}'.__('ENABLE MUTLI SELECTION'.__()),
+				icon   : './icons/eraser.png',
+				onClick: function() {
+					this.grid.multiSelect = true;
+					this.grid.disableSelect = false;
+					this.refresh();
+				}.bind(this)
+			})
+		});
+
+		this.view.toolbar.add({
+			key: 'delete-selected',
+			ui : new sakura.ui.Button({
+				label  : '{0}'.__('DELETE SELECTED'.__()),
+				icon   : './icons/eraser.png',
+				onClick: function() {
+					var selected = this.grid.getSelectedRows();
+					var nums = [];
+					selected.each(function(row) {
+						var program = row.data;
+						var dummy = new Ajax.Request('./api/recorded/' + program.id + '/file.json', {
+							method    : 'delete',
+							onSuccess: function () {
+								console.log(program.id + " deleted successfully.");
+							},
+							onFailure: function (t) {
+								console.log(program.id + " failed to delete.");
+							}
+						});
+						console.log(program.id);
+					});
+					this.grid.deselectAll();
+				}.bind(this)
+			})
+		});
+
+
+		this.view.toolbar.add({
 			key: 'execute-scheduler',
 			ui : new sakura.ui.Button({
 				label  : 'EXECUTE {0}'.__('CLEANUP'.__()),
@@ -119,7 +159,14 @@ P = Class.create(P, {
 				}
 			],
 			onClick: function(e, row) {
-				window.location.href = '#!/program/view/id=' + row.data.id + '/';
+				if (this.disableSelect) {
+					window.location.href = '#!/program/view/id=' + row.data.id + '/';
+				}
+			},
+			onDblClick: function(e, row) {
+				if (!this.disableSelect) {
+					window.location.href = '#!/program/view/id=' + row.data.id + '/';
+				}
 			}.bind(this)
 		}).insertTo(this.view.content);
 		
@@ -276,6 +323,9 @@ P = Class.create(P, {
 			if (program.isManualReserved) {
 				titleHtml = '<span class="flag manual">手動</span>' + titleHtml;
 			}
+      if (program.mp4) {
+        titleHtml = '<span class="flag manual">MP4</span>' + titleHtml;
+      }
 			
 			row.cell.title = {
 				sortAlt    : program.title + (program.episode || 0).toString(36),
