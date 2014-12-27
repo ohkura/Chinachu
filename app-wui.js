@@ -14,6 +14,7 @@ var RESERVES_DATA_FILE  = __dirname + '/data/reserves.json';
 var SCHEDULE_DATA_FILE  = __dirname + '/data/schedule.json';
 var RECORDING_DATA_FILE = __dirname + '/data/recording.json';
 var RECORDED_DATA_FILE  = __dirname + '/data/recorded.json';
+var ENCODING_DATA_FILE  = __dirname + '/data/encoding.json';
 var OPERATOR_LOG_FILE   = __dirname + '/log/operator';
 var WUI_LOG_FILE        = __dirname + '/log/wui';
 var SCHEDULER_LOG_FILE  = __dirname + '/log/scheduler';
@@ -533,7 +534,8 @@ function httpServerMain(req, res, query) {
 					RECORDED_DATA_FILE : RECORDED_DATA_FILE,
 					OPERATOR_LOG_FILE  : OPERATOR_LOG_FILE,
 					WUI_LOG_FILE       : WUI_LOG_FILE,
-					SCHEDULER_LOG_FILE : SCHEDULER_LOG_FILE
+					SCHEDULER_LOG_FILE : SCHEDULER_LOG_FILE,
+					ENCODING_DATA_FILE : ENCODING_DATA_FILE
 				},
 				data: {
 					rules    : rules,

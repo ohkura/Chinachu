@@ -12,6 +12,7 @@ var CONFIG_FILE         = __dirname + '/config.json';
 var RESERVES_DATA_FILE  = __dirname + '/data/reserves.json';
 var RECORDING_DATA_FILE = __dirname + '/data/recording.json';
 var RECORDED_DATA_FILE  = __dirname + '/data/recorded.json';
+var ENCODING_DATA_FILE  = __dirname + '/data/encoding.json';
 
 // 標準モジュールのロード
 var path          = require('path');
@@ -47,6 +48,7 @@ var chinachu   = require('chinachu-common');
 var reserves  = [];
 var recorded  = [];
 var recording = [];
+var encoding  = [];
 
 // 設定の読み込み
 var config = require(CONFIG_FILE);
@@ -82,6 +84,7 @@ if (config.operTweeter && config.operTweeterAuth && config.operTweeterFormat) {
 var schedulerProcessTime    = config.operSchedulerProcessTime    || 1000 * 60 * 20;//20分
 var schedulerIntervalTime   = config.operSchedulerIntervalTime   || 1000 * 60 * 60;//60分
 var autoDeleteCheckerIntervalTime = config.autoDeleteCheckerIntervalTime || 1000 * 60 * 60;//60分
+var encodingCheckerIntervalTime = config.autoDeleteCheckerIntervalTime || 1000 * 60;//1分
 var schedulerSleepStartHour = config.operSchedulerSleepStartHour || 1;
 var schedulerSleepEndHour   = config.operSchedulerSleepEndHour   || 5;
 var schedulerEpgRecordTime  = config.schedulerEpgRecordTime      || 60;
@@ -94,6 +97,8 @@ var next      = 0;
 var scheduler = null;
 var scheduled = 0;
 var autoDeleteChecked = 0;
+var encodingChecked = 0;
+var encodeRunning = false;
 
 // 録画コマンドのシリアライズ
 var operRecCmdSpan  = config.operRecCmdSpan || 0;
@@ -211,6 +216,56 @@ function startScheduler(channel) {
 	process.once('SIGINT', stopScheduler);
 	process.once('SIGQUIT', stopScheduler);
 	process.once('SIGTERM', stopScheduler);
+}
+
+function checkEncoding() {
+	if (encoding.length == 0 || encodeRunning) {
+		return;
+	}
+
+	for (var i = 0, l = recorded.length; i < l; i++) {
+		if (recorded[i].id == encoding[0]) {
+			encodeProgram(recorded[i]);
+		}
+	}
+}
+
+function encodeProgram(program) {
+	encodeRunning = true;
+
+	if (!config.mp4ConversionCommand) {
+		return;
+	}
+
+	var mp4Path = config.mp4Dir + chinachu.formatRecordedName(program, config.mp4Format);
+	var mp4_created = function (code) {
+		if (code == 0) {
+			util.log('MP4 CREATED: ' + mp4Path);
+			for (var i = 0, l = recorded.length; i < l; i++) {
+				if (recorded[i].id === program.id) {
+					recorded[i].mp4 = mp4Path;
+				}
+			}
+			fs.writeFileSync(RECORDED_DATA_FILE, JSON.stringify(recorded));
+			util.log('WRITE: ' + RECORDED_DATA_FILE);
+		} else {
+			util.log('MP4 CONVERSION ERROR: ' + code);
+		}
+		encoding.shift()
+		fs.writeFileSync(ENCODING_DATA_FILE, JSON.stringify(encoding));
+		encodeRunning = false;
+	}
+	var mp4ConversionCommand = config.mp4ConversionCommand.replace("<input>", program.recorded).replace("<output>", mp4Path);
+	util.log('ARGS:' + JSON.stringify(mp4ConversionCommand.split(' ').slice(1)));
+	var mp4Process = child_process.spawn(mp4ConversionCommand.split(' ')[0], mp4ConversionCommand.split(' ').slice(1));
+	util.log('SPAWN: ' + mp4ConversionCommand + ' (pid=' + mp4Process.pid + ')');
+	mp4Process.stdout.on('data', function (data) {
+		util.log('stderr:' + program.id + ' ' + data);
+	});
+	mp4Process.stderr.on('data', function (data) {
+		util.log('stderr:' + program.id + ' ' + data);
+	});
+	mp4Process.on('exit', mp4_created);
 }
 
 // 録画実行
@@ -341,34 +396,10 @@ function doRecord(program) {
 				}
 			}
 
-			// MP4への変換用コマンドが登録されていれば実行
-			if (program.convert_mp4 && config.mp4ConversionCommand) {
-				var mp4Path = config.mp4Dir + chinachu.formatRecordedName(program, config.mp4Format);
-				var mp4_created = function (code) {
-					if (code != 0) {
-						util.log('MP4 CONVERSION ERROR: ' + code);
-						return;
-					}
-					util.log('MP4 CREATED: ' + mp4Path);
-					for (i = 0, l = recorded.length; i < l; i++) {
-						if (recorded[i].id === program.id) {
-							recorded[i].mp4 = mp4Path;
-						}
-					}
-					fs.writeFileSync(RECORDED_DATA_FILE, JSON.stringify(recorded));
-					util.log('WRITE: ' + RECORDED_DATA_FILE);
-				}
-				var mp4ConversionCommand = config.mp4ConversionCommand.replace("<input>", recPath).replace("<output>", mp4Path);
-				util.log('ARGS:' + JSON.stringify(mp4ConversionCommand.split(' ').slice(1)));
-				var mp4Process = child_process.spawn(mp4ConversionCommand.split(' ')[0], mp4ConversionCommand.split(' ').slice(1));
-				util.log('SPAWN: ' + mp4ConversionCommand + ' (pid=' + mp4Process.pid + ')');
-				mp4Process.stdout.on('data', function (data) {
-					util.log('stderr:' + program.id + ' ' + data);
-				});
-				mp4Process.stderr.on('data', function (data) {
-					util.log('stderr:' + program.id + ' ' + data);
-				});
-				mp4Process.on('exit', mp4_created);
+			// 設定されていればMP4へ変換
+			if (program.convert_mp4) {
+				encoding.push(program.id);
+				fs.writeFileSync(ENCODING_DATA_FILE, JSON.stringify(encoding));
 			}
 
 			// ポストプロセス
@@ -538,6 +569,22 @@ chinachu.jsonWatcher(
 	{ create: [], now: true }
 );
 
+// ファイル更新監視: ./data/encoding.json
+chinachu.jsonWatcher(
+	ENCODING_DATA_FILE,
+	function _onUpdated(err, data, mes) {
+		if (err) {
+			util.error(err);
+			return;
+		}
+		
+		encoding = data;
+		util.log(mes);
+		encodingChecked = 0;
+	},
+	{ create: [], now: true }
+);
+
 // main
 function main() {
 	try {
@@ -559,6 +606,11 @@ function main() {
 		if (clock - autoDeleteChecked > autoDeleteCheckerIntervalTime) {
 			recorded.forEach(autoDeleteChecker);
 			autoDeleteChecked = clock;
+		}
+
+		if (clock - encodingChecked > encodingCheckerIntervalTime) {
+			checkEncoding();
+			encodingChecked = clock;
 		}
 
 	} catch (e) {

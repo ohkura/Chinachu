@@ -12,6 +12,17 @@
 			response.end(JSON.stringify(program, null, '  '));
 			return;
 		
+		case 'PUT':
+			if (program.isRemoved) {
+				response.head(410);
+			}
+			var encoding = JSON.parse(fs.readFileSync(define.ENCODING_DATA_FILE));
+			encoding.push(program.id);
+			fs.writeFileSync(define.ENCODING_DATA_FILE, JSON.stringify(encoding));
+			response.head(200);
+			response.end('{}');
+			return;
+		
 		case 'DELETE':
 			data.recorded = (function() {
 				var array = [];

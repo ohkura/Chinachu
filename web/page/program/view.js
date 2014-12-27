@@ -154,6 +154,17 @@ P = Class.create(P, {
 					}
 				})
 			});
+
+			this.view.toolbar.add({
+				key: 'convert-mp4',
+				ui : new sakura.ui.Button({
+					label  : 'MP4ファイルの作成',
+					icon   : './icons/film-youtube.png',
+					onClick: function() {
+						new chinachu.ui.EncodeProgram(program.id);
+					}
+				})
+			});
 		}
 		
 		if (program.recorded) {

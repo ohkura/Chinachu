@@ -918,6 +918,70 @@
 		}
 	});
 	
+	ui.EncodeProgram = Class.create({
+		initialize: function _init(id) {
+			this.program = util.getProgramById(id);
+			
+			this.create();
+			
+			return this;
+		},
+		create: function _create() {
+			if (this.program === null) {
+				this.modal = new flagrate.Modal({
+					title: 'エラー',
+					text : '番組が見つかりませんでした'
+				});
+			} else {
+				this.modal = new flagrate.Modal({
+					title   : 'ファイルのエンコード',
+					subtitle: this.program.title + ' #' + this.program.id,
+					text    : 'エンコードには時間がかかります。この処理はバックグラウンドで行われます。',
+	
+					buttons: [
+						{
+							label  : 'エンコード',
+							color  : '@red',
+							onSelect: function (e, modal) {
+								e.targetButton.disable();
+								
+								var dummy = new Ajax.Request('./api/recorded/' + this.program.id + '.json', {
+									method    : 'put',
+									onComplete: function () {
+										modal.close();
+									},
+									onSuccess: function () {
+										new flagrate.Modal({
+											title: '成功',
+											text : 'このプログラムはエンコード待ちリストに追加されました'
+										}).show();
+									},
+									onFailure: function (t) {
+										new flagrate.Modal({
+											title: '失敗',
+											text : '失敗しました (' + t.status + ')'
+										}).show();
+									}
+								});
+							}.bind(this)
+						},
+						{
+							label  : 'キャンセル',
+							onSelect: function (e, modal) {
+								modal.close();
+							}
+						}
+					]
+				});
+			}
+			
+			this.modal.show();
+			
+			return this;
+		}
+	});
+		
+
 	ui.RemoveRecordedProgram = Class.create({
 		initialize: function _init(id) {
 			this.program = util.getProgramById(id);

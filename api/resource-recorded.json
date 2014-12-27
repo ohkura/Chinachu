@@ -7,7 +7,7 @@
   
   "/:id": {
     "script" : "recorded-program",
-    "methods": ["get", "delete"],
+    "methods": ["get", "put", "delete"],
     "types"  : ["json"]
   },
   
