@@ -65,7 +65,7 @@ P = Class.create(P, {
 					key  : 'category',
 					label: 'ジャンル',
 					width: 70,
-					align: 'center',
+					align: 'center'
 				},
 				{
 					key  : 'channel',
@@ -74,7 +74,8 @@ P = Class.create(P, {
 				},
 				{
 					key  : 'title',
-					label: 'タイトル'
+					label: 'タイトル',
+					width: 500
 				},
 				{
 					key  : 'datetime',
@@ -85,7 +86,7 @@ P = Class.create(P, {
 					key  : 'duration',
 					label: '長さ',
 					width: 50,
-					align: 'center',
+					align: 'center'
 				}
 			],
 			onClick: function(e, row) {
