@@ -146,17 +146,6 @@ P = Class.create(P, {
 				})
 			});
 
-			this.view.toolbar.add({
-				key: 'convert-mp4',
-				ui : new sakura.ui.Button({
-					label  : 'MP4ファイルの作成',
-					icon   : './icons/film-youtube.png',
-					onClick: function() {
-						new chinachu.ui.EncodeProgram(program.id);
-					}
-				})
-			});
-
 			if (global.chinachu.status.feature.filer) {
 				this.view.toolbar.add({
 					key: 'remove-file',
@@ -172,6 +161,32 @@ P = Class.create(P, {
 		}
 		
 		if (program.recorded) {
+			if (program.mp4) {
+				if (global.chinachu.status.feature.filer) {
+					this.view.toolbar.add({
+						key: 'download-mp4',
+						ui : new sakura.ui.Button({
+							label  : 'MP4ダウンロード',
+							icon   : './icons/disk.png',
+							onClick: function() {
+								new chinachu.ui.DownloadMP4File(program.id);
+							}
+						})
+					});
+				}
+			} else {
+				this.view.toolbar.add({
+					key: 'convert-mp4',
+					ui : new sakura.ui.Button({
+						label  : 'MP4ファイルの作成',
+						icon   : './icons/film-youtube.png',
+						onClick: function() {
+							new chinachu.ui.EncodeProgram(program.id);
+						}
+					})
+				});
+			}
+
 			if (global.chinachu.status.feature.filer) {
 				this.view.toolbar.add({
 					key: 'download',

@@ -1052,6 +1052,13 @@
 		}
 	});
 	
+	ui.DownloadMP4File = Class.create({
+		initialize: function _init(id) {
+			window.open('./api/recorded/' + id + '/file.mp4');
+			return this;
+		}
+	});
+	
 	ui.RemoveRecordedFile = Class.create({
 		initialize: function _init(id) {
 			this.program = util.getProgramById(id);

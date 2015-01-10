@@ -19,6 +19,15 @@
 
 				fs.createReadStream(program.recorded).pipe(response);
 			}
+
+			if (request.type === 'mp4') {
+				var fstat = fs.statSync(program.mp4);
+				response.setHeader('content-length', fstat.size);
+				response.setHeader('content-disposition', 'attachment; filename="' + program.id + '.mp4"');
+				response.head(200);
+
+				fs.createReadStream(program.mp4).pipe(response);
+			}
 			
 			if (request.type === 'json') {
 				response.head(200);

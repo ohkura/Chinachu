@@ -22,7 +22,7 @@ case 'GET':
 
 		for (i in data.recorded) {
 			var program = data.recorded[i];
-			var mp4_url = site + 'api/recorded/' + program.id + '/watch.mp4?ext=mp4&c%3Av=copy&c%3Aa=copy&ss=0';
+			var mp4_url = site + 'api/recorded/' + program.id + '/file.mp4';
 			if (program.mp4 && fs.existsSync(program.mp4)) {
 				podcast.item({
 					title: program.fullTitle,

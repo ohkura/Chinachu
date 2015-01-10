@@ -14,7 +14,7 @@
   "/:id/file": {
     "script" : "recorded-program-file",
     "methods": ["get", "delete"],
-    "types"  : ["json", "m2ts"]
+    "types"  : ["json", "m2ts", "mp4"]
   },
   
   "/:id/preview": {
