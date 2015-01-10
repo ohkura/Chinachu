@@ -27,113 +27,270 @@
 			this.tick = flagrate.emptyFunction;
 			this.draw = flagrate.emptyFunction;
 			if (this.view.drawerDt) { this.view.drawerDt.remove(); }
-			if (this.view.clock) { this.view.clock.remove(); }
 			
 			return this;
 		},
 		
 		refresh: function () {
 			
-			document.stopObserving('chinachu:schedule', this.onNotify);
+			document.fire('sakurapanel:pm:unload');
 			
-			this.app.pm.realizeHash(true);
+			clearTimeout(this.timer.reloading);
+			this.timer.reloading = setTimeout(function () {
+				if (this.view.drawerDt) { this.view.drawerDt.remove(); }
+
+				this.time = new Date().getTime();
+				this.draw();
+			}.bind(this), 50);
 			
 			return this;
 		},
 		
 		initToolbar: function () {
 			
-			/*
+			var date = new Date(this.time);
+			var days = ['日', '月', '火', '水', '木', '金', '土'];
+			
 			this.view.toolbar.add({
 				key: 'type-gr',
 				ui : flagrate.createCheckbox({
-					label: 'GR'
+					label: 'GR',
+					onChange: function (e) {
+						var types = JSON.parse(localStorage.getItem('schedule.visible.types') || '["GR","BS","CS","EX"]');
+						
+						if (e.targetCheckbox.isChecked()) {
+							types.push('GR');
+						} else {
+							types = types.without('GR');
+						}
+						localStorage.setItem('schedule.visible.types', JSON.stringify(types));
+						
+						this.refresh();
+					}.bind(this)
 				}).disable()
 			});
 			
 			this.view.toolbar.add({
 				key: 'type-bs',
 				ui : flagrate.createCheckbox({
-					label: 'BS'
+					label: 'BS',
+					onChange: function (e) {
+						var types = JSON.parse(localStorage.getItem('schedule.visible.types') || '["GR","BS","CS","EX"]');
+						
+						if (e.targetCheckbox.isChecked()) {
+							types.push('BS');
+						} else {
+							types = types.without('BS');
+						}
+						localStorage.setItem('schedule.visible.types', JSON.stringify(types));
+						
+						this.refresh();
+					}.bind(this)
 				}).disable()
 			});
 			
 			this.view.toolbar.add({
 				key: 'type-cs',
 				ui : flagrate.createCheckbox({
-					label: 'CS'
+					label: 'CS',
+					onChange: function (e) {
+						var types = JSON.parse(localStorage.getItem('schedule.visible.types') || '["GR","BS","CS","EX"]');
+						
+						if (e.targetCheckbox.isChecked()) {
+							types.push('CS');
+						} else {
+							types = types.without('CS');
+						}
+						localStorage.setItem('schedule.visible.types', JSON.stringify(types));
+						
+						this.refresh();
+					}.bind(this)
 				}).disable()
 			});
 			
 			this.view.toolbar.add({
 				key: 'type-ex',
 				ui : flagrate.createCheckbox({
-					label: 'EX'
-				}).disable()
-			});
-			
-			this.view.toolbar.add({
-				key: 'zoom-out',
-				ui : new sakura.ui.Button({
-					label  : '小さく',
-					icon   : './icons/dummy.png',
-					onClick: function () {
+					label: 'EX',
+					onChange: function (e) {
+						var types = JSON.parse(localStorage.getItem('schedule.visible.types') || '["GR","BS","CS","EX"]');
 						
+						if (e.targetCheckbox.isChecked()) {
+							types.push('EX');
+						} else {
+							types = types.without('EX');
+						}
+						localStorage.setItem('schedule.visible.types', JSON.stringify(types));
+						
+						this.refresh();
 					}.bind(this)
 				}).disable()
 			});
 			
 			this.view.toolbar.add({
-				key: 'zoom-in',
+				key: 'day+0',
 				ui : new sakura.ui.Button({
-					label  : '大きく',
-					icon   : './icons/dummy.png',
+					className: 'day',
+					label  : (date.getMonth() + 1) + '/' + date.getDate() + '(' + days[date.getDay()] + ') ' + date.getHours() + '時~',
 					onClick: function () {
-						
+						this.self.query.day = '0';
+						location.hash = '!/schedule/table/' + Object.toQueryString(this.self.query) + '/';
 					}.bind(this)
-				}).disable()
+				})
 			});
-			
 			this.view.toolbar.add({
-				key: 'yesterday',
+				key: 'day+1',
 				ui : new sakura.ui.Button({
-					label  : '前の日',
-					icon   : './icons/dummy.png',
+					className: 'day',
+					label  : (new Date(this.time + 86400000).getDate()) + '(' + days[new Date(this.time + 86400000).getDay()] + ')',
 					onClick: function () {
-						
+						this.self.query.day = '1';
+						location.hash = '!/schedule/table/' + Object.toQueryString(this.self.query) + '/';
 					}.bind(this)
-				}).disable()
+				})
 			});
-			
 			this.view.toolbar.add({
-				key: 'tomorrow',
+				key: 'day+2',
 				ui : new sakura.ui.Button({
-					label  : '次の日',
-					icon   : './icons/dummy.png',
+					className: 'day',
+					label  : (new Date(this.time + 172800000).getDate()) + '(' + days[new Date(this.time + 172800000).getDay()] + ')',
 					onClick: function () {
-						
+						this.self.query.day = '2';
+						location.hash = '!/schedule/table/' + Object.toQueryString(this.self.query) + '/';
 					}.bind(this)
-				}).disable()
+				})
+			});
+			this.view.toolbar.add({
+				key: 'day+3',
+				ui : new sakura.ui.Button({
+					className: 'day',
+					label  : (new Date(this.time + 259200000).getDate()) + '(' + days[new Date(this.time + 259200000).getDay()] + ')',
+					onClick: function () {
+						this.self.query.day = '3';
+						location.hash = '!/schedule/table/' + Object.toQueryString(this.self.query) + '/';
+					}.bind(this)
+				})
+			});
+			this.view.toolbar.add({
+				key: 'day+4',
+				ui : new sakura.ui.Button({
+					className: 'day',
+					label  : (new Date(this.time + 345600000).getDate()) + '(' + days[new Date(this.time + 345600000).getDay()] + ')',
+					onClick: function () {
+						this.self.query.day = '4';
+						location.hash = '!/schedule/table/' + Object.toQueryString(this.self.query) + '/';
+					}.bind(this)
+				})
+			});
+			this.view.toolbar.add({
+				key: 'day+5',
+				ui : new sakura.ui.Button({
+					className: 'day',
+					label  : (new Date(this.time + 432000000).getDate()) + '(' + days[new Date(this.time + 432000000).getDay()] + ')',
+					onClick: function () {
+						this.self.query.day = '5';
+						location.hash = '!/schedule/table/' + Object.toQueryString(this.self.query) + '/';
+					}.bind(this)
+				})
+			});
+			this.view.toolbar.add({
+				key: 'day+6',
+				ui : new sakura.ui.Button({
+					className: 'day',
+					label  : (new Date(this.time + 518400000).getDate()) + '(' + days[new Date(this.time + 518400000).getDay()] + ')',
+					onClick: function () {
+						this.self.query.day = '6';
+						location.hash = '!/schedule/table/' + Object.toQueryString(this.self.query) + '/';
+					}.bind(this)
+				})
 			});
 			
 			this.view.toolbar.add({
 				key: 'config',
 				ui : new sakura.ui.Button({
-					label  : 'ビュー設定',
+					label  : '設定',
 					icon   : './icons/wrench-screwdriver.png',
 					onClick: function () {
 						
+						var form = flagrate.createForm({
+							fields: [
+								{
+									key: 'categories',
+									label: '表示ジャンル',
+									input: {
+										type : 'checkboxes',
+										val  : JSON.parse(localStorage.getItem('schedule.visible.categories') || '["anime", "information", "news", "sports", "variety", "drama", "music", "cinema", "etc"]'),
+										items: [
+											'anime', 'information', 'news', 'sports',
+											'variety', 'drama', 'music', 'cinema', 'etc'
+										]
+									}
+								},
+								{
+									key: 'notifyCategories',
+									label: '通知ジャンル',
+									text: 'WUIを開いている時に番組放送開始を通知します',
+									input: {
+										type : 'checkboxes',
+										val  : JSON.parse(localStorage.getItem('schedule.notify.categories') || '[]'),
+										items: [
+											'anime', 'information', 'news', 'sports',
+											'variety', 'drama', 'music', 'cinema', 'etc'
+										]
+									}
+								},
+								{
+									key  : 'hideChannels',
+									label: '隠すCH',
+									input: {
+										type : 'checkboxes',
+										val  : JSON.parse(localStorage.getItem('schedule.hide.channels') || '[]'),
+										items: global.chinachu.schedule.map(function (a) {
+											return {
+												label: a.name,
+												value: a.id
+											};
+										})
+									}
+								}
+							]
+						});
+						
+						flagrate.createModal({
+							title: '番組表設定',
+							content: form.element,
+							buttons: [
+								{
+									label: '適用',
+									color: '@pink',
+									onSelect: function (e, modal) {
+										
+										var result = form.getResult();
+										
+										localStorage.setItem('schedule.visible.categories', JSON.stringify(result.categories));
+										localStorage.setItem('schedule.notify.categories', JSON.stringify(result.notifyCategories));
+										localStorage.setItem('schedule.hide.channels', JSON.stringify(result.hideChannels));
+										
+										this.refresh();
+										modal.close();
+									}.bind(this)
+								},
+								{
+									label: 'キャンセル'.__(),
+									onSelect: function (e, modal) {
+										modal.close();
+									}
+								}
+							]
+						}).open();
 					}.bind(this)
 				})
 			});
-			*/
 			
 			return this;
 		},
 		
 		draw: function () {
-			
-			this.view.clock = flagrate.createElement('div', {'class': 'clock'}).insertTo(this.app.view.mainHead.entity);
 			
 			this.view.content.className = 'fullscreen timetable';
 			this.view.content.update();
@@ -150,15 +307,27 @@
 			this.data.scrollEnd   = [0, 0];
 			this.data.target      = null;
 			
-			var unitlen = this.unitlen = 50;
-			var linelen      = 80;
-			var types        = eval(window.localStorage.getItem('schedule-param-types') || "['GR','BS','CS','EX']");
-			var categories = this.categories = eval(window.localStorage.getItem('schedule-param-categories') || "['anime', 'information', 'news', 'sports', 'variety', 'drama', 'music', 'cinema', 'etc']");
-			var hideChannels = eval(window.localStorage.getItem('schedule-param-hide-channels') || "[]");
+			var unitlen = this.unitlen = 60;
+			var linelen      = 140;
+			var types        = JSON.parse(window.localStorage.getItem('schedule.visible.types') || '["GR", "BS", "CS", "EX"]');
+			var categories   = this.categories = JSON.parse(window.localStorage.getItem('schedule.visible.categories') || '["anime", "information", "news", "sports", "variety", "drama", "music", "cinema", "etc"]');
+			var hideChannels = JSON.parse(window.localStorage.getItem('schedule.hide.channels') || "[]");
+			
+			var day = 0;
+			if (this.self.query.day) {
+				day = parseInt(this.self.query.day, 10);
+				if (day < 0 && day > 6) {
+					day = 0;
+				}
+			}
+			this.view.toolbar.one('day+' + day).entity.addClassName('selected');
+			var timeRangeStart = this.time + 86400000 * day;
+			var timeRangeEnd   = timeRangeStart + 86400000;
 			
 			var total  = 0;
 			var count  = 0;
-			var maxlen = 0;
+			var maxlen = this.time + 86400000 + 3600000;
+			var maxH   = (maxlen - this.time) / 1000 / 1000 * unitlen;
 			
 			var piece  = this.data.piece  = {};// piece of canvas programs
 			var pieces = this.data.pieces = [];// array of program pieces
@@ -168,7 +337,6 @@
 			this.view.head = flagrate.createElement('div', {'class': 'head'}).insertTo(this.view.content);
 			
 			// ツールバー
-			/*
 			if (types.indexOf('GR') !== -1) { this.view.toolbar.one('type-gr').check(); }
 			if (types.indexOf('BS') !== -1) { this.view.toolbar.one('type-bs').check(); }
 			if (types.indexOf('CS') !== -1) { this.view.toolbar.one('type-cs').check(); }
@@ -177,7 +345,6 @@
 			this.view.toolbar.one('type-bs').enable();
 			this.view.toolbar.one('type-cs').enable();
 			this.view.toolbar.one('type-ex').enable();
-			*/
 			
 			global.chinachu.schedule.forEach(function (channel, i) {
 				if (channel.programs.length === 0) { return; }
@@ -216,15 +383,21 @@
 				});
 				
 				channel.programs.forEach(function (program, j) {
+					if (program.start + 7200000 < timeRangeStart || program.start > timeRangeEnd + 3600000) {
+						return;
+					}
 					if ((program.end - this.time) < 0) {
-						channel.programs = channel.programs.without(program);
 						return;
 					}
 					
-					var posY   = Math.floor(1 + (program.start - this.time) / 1000 / 1000 * unitlen + 100);
-					var height = Math.floor(program.seconds / 1000 * unitlen - 1);
+					var posY   = Math.floor((program.start - timeRangeStart) / 1000 / 1000 * unitlen + 100);
+					var height = Math.floor(program.seconds / 1000 * unitlen);
 					
-					if (maxlen < program.end) { maxlen = program.end; }
+					if (posY > maxH) {
+						return;
+					} else if (posY + height > maxH) {
+						height = maxH - posY;
+					}
 					
 					// color: this.app.def.categoryColor[program.category] || '#ffffff'
 					
@@ -272,7 +445,7 @@
 			// スケール
 			this.view.timescale = flagrate.createElement('div', {'class': 'timescale'}).insertTo(this.view.content);
 			
-			this.view.timescale.setStyle({'height': ((maxlen - this.time) / 1000 / 1000 * unitlen + 100) + 'px'});
+			this.view.timescale.setStyle({'height': maxH + 20 + 'px'});
 			
 			
 			var ld  = -1;
@@ -290,7 +463,7 @@
 					this.view.timescale.insert(
 						flagrate.createElement('div', { 'class': 'long h' + date.getHours() }).setStyle({
 							top: ((i - this.time) / 1000 / 1000 * unitlen) + 'px'
-						}).insert(date.getHours() + 'h')
+						}).insert(date.getHours())
 					);
 				}
 				
@@ -326,23 +499,31 @@
 							}
 						}).render(this.view.board);
 					}
-					
-					if (m === 0) {
-						this.view.timescale.insert(
-							flagrate.createElement('div', { 'class': 'long h' + date.getHours() + ' date' }).setStyle({
-								top: ((i - this.time) / 1000 / 1000 * unitlen) + 'px'
-							}).insert(d + 'd')
-						);
-					}
-					
-					if (m !== 0) {
-						this.view.timescale.insert(
-							flagrate.createElement('div', { 'class': 'date' }).setStyle({
-								top: ((i - this.time) / 1000 / 1000 * unitlen) + 'px'
-							}).insert(d + 'd')
-						);
-					}
 				}
+			}
+			
+			// 日付上下移動ボタン
+			if (day > 0) {
+				flagrate.createButton({
+					label: '▲',
+					color: '@inverse',
+					className: 'prev',
+					onSelect: function () {
+						this.self.query.day = day - 1;
+						location.hash = '!/schedule/table/' + Object.toQueryString(this.self.query) + '/';
+					}.bind(this)
+				}).insertTo(this.view.timescale);
+			}
+			if (day < 6) {
+				flagrate.createButton({
+					label: '▼',
+					color: '@inverse',
+					className: 'next',
+					onSelect: function () {
+						this.self.query.day = day + 1;
+						location.hash = '!/schedule/table/' + Object.toQueryString(this.self.query) + '/';
+					}.bind(this)
+				}).insertTo(this.view.timescale);
 			}
 			
 			// drawer
@@ -402,9 +583,14 @@
 				);
 			}.bind(this);
 			
-			var onClick = function (e) {
+			//
+			// イベントとか
+			//
+			var onClick, onMousedown, onMousemove, onMouseup;
+			
+			onClick = function (e) {
 				
-				var targetId = e.target.getAttribute('rel') || (e.target.parentNode || e.target.parentElement).getAttribute('rel') || null;
+				var targetId = e.target.getAttribute('rel') || (e.target.parentNode || e.target.parentElement).getAttribute('rel') || (e.target.parentNode.parentNode || e.target.parentElement.parentElement).getAttribute('rel') || null;
 				
 				this.data.target = null;
 				
@@ -430,24 +616,6 @@
 						this.data.target = null;
 					}
 					
-					var target = null;
-					
-					if (e.keyCode === 38 || e.keyCode === 87) {
-						target = chinachu.util.getPrevProgramById(this.data.target.id);
-						if (target !== null) {
-							this.data.target = target;
-							deltaY = this.data.piece[this.data.target.id]._rect.getHeight() * 0.365 + 1;
-						}
-					}
-					
-					if (e.keyCode === 40 || e.keyCode === 83) {
-						target = chinachu.util.getNextProgramById(this.data.target.id);
-						if (target !== null) {
-							this.data.target = target;
-							deltaY = -(this.data.piece[this.data.target.id]._rect.getHeight() * 0.365 + 1);
-						}
-					}
-					
 					viewDrawer();
 				}
 				
@@ -471,7 +639,7 @@
 				inertiaScroll();
 			}.bind(this);
 			
-			var onMousedown = function (e) {
+			onMousedown = function (e) {
 				
 				e.preventDefault();
 				e.stopPropagation();
@@ -485,7 +653,12 @@
 				this.scroller();
 			}.bind(this);
 			
-			var onMousemove = function (e) {
+			onMousemove = function (e) {
+				
+				if (e.which === 0) {
+					onMouseup(e);
+					return;
+				}
 				
 				e.preventDefault();
 				e.stopPropagation();
@@ -495,7 +668,7 @@
 				this.scroller();
 			}.bind(this);
 			
-			var onMouseup = function (e) {
+			onMouseup = function (e) {
 				
 				e.preventDefault();
 				e.stopPropagation();
@@ -606,13 +779,17 @@
 			}.bind(this);
 			document.observe('sakurapanel:pm:unload', removeListenerOnUnload);
 			
-			// start
-			this.tick();
+			if (!this.started) {
+				this.started = true;
+				
+				// start
+				this.tick();
+			}
 			
 			return this;
 		},//<--draw
 		
-		scroller: function _scroller() {
+		scroller: function () {
 			if (
 				(this.data.scrollStart[0] - this.data.scrollEnd[0] !== 0) ||
 				(this.data.scrollStart[1] - this.data.scrollEnd[1] !== 0)
@@ -633,7 +810,7 @@
 			return this;
 		},//<--scroller
 		
-		tick: function _tick() {
+		tick: function () {
 			
 			// window.requestAnimationFrame
 			(
@@ -658,6 +835,8 @@
 			this.view.timescale.style.marginLeft = (left + 200) + 'px';
 			this.view.head.style.marginLeft = '-' + (left + 200) + 'px';
 			
+			this.view.hand.entity.style.top = Math.round((Date.now() - this.time) / 1000 / 1000 * this.unitlen + 100) + 'px';
+			
 			this.data.pieces.forEach(function (a, i) {
 				// 表示範囲か
 				if (
@@ -667,6 +846,8 @@
 					(a.posY < bottom || a.posY + a.height < bottom)
 				) {
 					if (typeof a._rect === 'undefined') {
+						var date = new Date(a.program.start);
+						
 						a._rect              = flagrate.createElement('div');
 						a._rect.className    = 'rect bg-cat-' + a.program.category + ((this.categories.indexOf(a.program.category) === -1) ? ' muted' : '');
 						a._rect.style.left   = a.posX + 'px';
@@ -674,7 +855,17 @@
 						a._rect.style.width  = a.width + 'px';
 						a._rect.style.height = a.height + 'px';
 						
-						a._label = flagrate.createElement('div').insertText(a.program.title).insertTo(a._rect);
+						a._label = flagrate.createElement('div').insert(
+							flagrate.createElement('h4').insertText(
+								date.getHours().toPaddedString(2) + ':' + date.getMinutes().toPaddedString(2) + ' ' + a.program.title
+							)
+						).insert(
+							flagrate.createElement('div').insert(
+								a.program.flags.invoke('sub', /.+/, '<span rel="' + a.id+ '" class="#{0}">#{0}</span>').join('')
+							)
+						).insert(
+							flagrate.createElement('span').insertText(a.program.detail)
+						).insertTo(a._rect);
 						
 						a._rect.title = a.program.fullTitle;
 						
@@ -696,13 +887,12 @@
 									label   : 'ルール作成...',
 									icon    : './icons/regular-expression.png',
 									onSelect: function () {
-										new chinachu.ui.CreateRuleByProgram(a.program.id);
+										var dummy = new chinachu.ui.CreateRuleByProgram(a.program.id);
 									}
 								},
 								'------------------------------------------',
 								{
 									label   : 'ツイート...',
-									icon    : 'https://abs.twimg.com/favicons/favicon.ico',
 									onSelect: function () {
 										var left = (screen.width - 640) / 2;
 										var top  = (screen.height - 265) / 2;
@@ -769,7 +959,7 @@
 										label   : '予約取消...',
 										icon    : './icons/cross-script.png',
 										onSelect: function () {
-											new chinachu.ui.Unreserve(a.program.id);
+											var dummy = new chinachu.ui.Unreserve(a.program.id);
 										}
 									});
 								}
@@ -780,7 +970,7 @@
 										label   : 'スキップの取消...',
 										icon    : './icons/tick-circle.png',
 										onSelect: function () {
-											new chinachu.ui.Unskip(a.program.id);
+											var dummy = new chinachu.ui.Unskip(a.program.id);
 										}
 									});
 								} else {
@@ -788,7 +978,7 @@
 										label   : 'スキップ...',
 										icon    : './icons/exclamation-red.png',
 										onSelect: function () {
-											new chinachu.ui.Skip(a.program.id);
+											var dummy = new chinachu.ui.Skip(a.program.id);
 										}
 									});
 								}
@@ -797,7 +987,7 @@
 									label   : '予約...',
 									icon    : './icons/plus-circle.png',
 									onSelect: function () {
-										new chinachu.ui.Reserve(a.program.id);
+										var dummy = new chinachu.ui.Reserve(a.program.id);
 									}
 								});
 							}
@@ -807,12 +997,12 @@
 									label   : '録画中止...',
 									icon    : './icons/cross.png',
 									onSelect: function () {
-										new chinachu.ui.StopRecord(a.program.id);
+										var dummy = new chinachu.ui.StopRecord(a.program.id);
 									}
 								});
 							}
 							
-							new flagrate.ContextMenu({
+							flagrate.createContextMenu({
 								target: a._rect,
 								items : contextMenuItems
 							});
@@ -831,11 +1021,6 @@
 							a._rect.style.display = '';
 						}
 						a.isVisible = true;
-					}
-					
-					if (a.isVisible === true) {
-						//if (a.posX - top
-						//console.log(top, a.posY);
 					}
 					
 					if (this.data.target !== null && this.data.target.id === a.id) {
@@ -857,12 +1042,6 @@
 					}
 				}
 			}.bind(this));
-			
-			this.view.clock.innerHTML = (
-				chinachu.dateToString(
-					new Date(this.time + (this.view.content.scrollTop * 1000 * 1000 / this.unitlen))
-				)
-			);
 			
 			return this;
 		}//<--render

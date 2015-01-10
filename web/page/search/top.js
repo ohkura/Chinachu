@@ -4,6 +4,14 @@ P = Class.create(P, {
 		
 		this.view.content.className = 'loading';
 		
+		// Firefox あかん https://bugzilla.mozilla.org/show_bug.cgi?id=378962
+		if (/^[%A-Z0-9]+$/.test(this.self.query.title) === true) {
+			this.self.query.title = decodeURIComponent(this.self.query.title || '');
+		}
+		if (/^[%A-Z0-9]+$/.test(this.self.query.desc) === true) {
+			this.self.query.desc = decodeURIComponent(this.self.query.desc || '');
+		}
+		
 		this.initToolbar();
 		this.draw();
 		
@@ -90,8 +98,31 @@ P = Class.create(P, {
 			],
 			onClick: function(e, row) {
 				window.location.href = '#!/program/view/id=' + row.data.id + '/';
+			},
+			onRendered: function() {
+				
+				this.self.query.page = this.grid.pagePosition;
+				
+				if (Prototype.Browser.Gecko) {
+					if (/^[%A-Z0-9]+$/.test(this.self.query.title) === false) {
+						this.self.query.title = encodeURIComponent(this.self.query.title);
+					}
+					if (/^[%A-Z0-9]+$/.test(this.self.query.desc) === false) {
+						this.self.query.desc = encodeURIComponent(this.self.query.desc);
+					}
+					
+					location.hash = '!/search/top/' + Object.toQueryString(this.self.query) + '/';
+					this.app.pm._lastHash = location.hash.match(/^#(.+)$/)[1];
+				} else {
+					this.app.pm._lastHash = '!/search/top/' + Object.toQueryString(this.self.query) + '/';
+					history.replaceState(null, null, '#' + this.app.pm._lastHash);
+				}
 			}.bind(this)
 		}).insertTo(this.view.content);
+		
+		if (this.self.query.page) {
+			this.grid.pagePosition = parseInt(this.self.query.page, 10);
+		}
 		
 		if (!this.self.query.skip) {
 			this.viewSearchModal();
@@ -121,7 +152,7 @@ P = Class.create(P, {
 				if (this.self.query.chid && this.self.query.chid !== program.channel.id) continue; 
 				if (this.self.query.cat && this.self.query.cat !== program.category) continue; 
 				if (this.self.query.type && this.self.query.type !== program.channel.type) continue; 
-				if (this.self.query.title && program.title.match(this.self.query.title) === null) continue;
+				if (this.self.query.title && program.fullTitle.match(this.self.query.title) === null) continue;
 				if (this.self.query.desc && (!program.detail || program.detail.match(this.self.query.desc) === null)) continue;
 				
 				if (this.self.query.start || this.self.query.end) {
@@ -296,6 +327,14 @@ P = Class.create(P, {
 	,
 	viewSearchModal: function() {
 		
+		// Firefox あかん https://bugzilla.mozilla.org/show_bug.cgi?id=378962
+		if (/^[%A-Z0-9]+$/.test(this.self.query.title) === true) {
+			this.self.query.title = decodeURIComponent(this.self.query.title || '');
+		}
+		if (/^[%A-Z0-9]+$/.test(this.self.query.desc) === true) {
+			this.self.query.desc = decodeURIComponent(this.self.query.desc || '');
+		}
+		
 		var modal = new flagrate.Modal({
 			title  : '番組検索',
 			buttons: [
@@ -307,8 +346,12 @@ P = Class.create(P, {
 						
 						var result = viewSearchForm.result();
 						
+						result.title = encodeURIComponent(result.title);
+						result.desc = encodeURIComponent(result.desc);
+						
 						this.self.query = Object.extend(this.self.query, result);
 						this.self.query.skip = 1;
+						this.self.query.page = 0;
 						
 						modal.close();
 						

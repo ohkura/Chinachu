@@ -168,8 +168,17 @@ P = Class.create(P, {
 				if (!this.disableSelect) {
 					window.location.href = '#!/program/view/id=' + row.data.id + '/';
 				}
+				window.location.href = '#!/program/view/id=' + row.data.id + '/';
+			},
+			onRendered: function() {
+				this.app.pm._lastHash = '!/recorded/list/page=' + this.grid.pagePosition + '/';
+				history.replaceState(null, null, '#' + this.app.pm._lastHash);
 			}.bind(this)
 		}).insertTo(this.view.content);
+		
+		if (this.self.query.page) {
+			this.grid.pagePosition = parseInt(this.self.query.page, 10);
+		}
 		
 		this.drawMain();
 		
