@@ -255,7 +255,7 @@ function encodeProgram(program) {
 		fs.writeFileSync(ENCODING_DATA_FILE, JSON.stringify(encoding));
 		encodeRunning = false;
 	}
-	var mp4ConversionCommand = config.mp4ConversionCommand.replace("<input>", program.recorded).replace("<output>", mp4Path);
+	var mp4ConversionCommand = config.mp4ConversionCommand.replace("<input>", escapeFileName(program.recorded)).replace("<output>", escapeFileName(mp4Path));
 	util.log('ARGS:' + JSON.stringify(mp4ConversionCommand.split(' ').slice(1)));
 	var mp4Process = child_process.spawn(mp4ConversionCommand.split(' ')[0], mp4ConversionCommand.split(' ').slice(1));
 	util.log('SPAWN: ' + mp4ConversionCommand + ' (pid=' + mp4Process.pid + ')');
@@ -266,6 +266,10 @@ function encodeProgram(program) {
 		util.log('stderr:' + program.id + ' ' + data);
 	});
 	mp4Process.on('exit', mp4_created);
+}
+
+function escapeFileName(filename) {
+    return filename.replace("[","\[").replace("]","\]").replace(" ", "\ ");
 }
 
 // 録画実行
