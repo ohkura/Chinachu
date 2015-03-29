@@ -1426,6 +1426,7 @@
 										type : 'checkbox',
 										label: '有効にする',
 										val  : rule.convert_mp4
+									}
 								},
 								{
 									key	: 'recorded_format',
@@ -1669,7 +1670,6 @@
 							}
 						},
 						{
-<<<<<<< HEAD
 							key   : 'keep_days',
 							label : '保存日数',
 							input : {
@@ -1685,13 +1685,14 @@
 								type : 'checkbox',
 								label: '有効にする',
 								val  : false
-=======
+							}
+						},
+						{
 							key	: 'recorded_format',
 							label	: '録画ファイル名フォーマット',
 							input	: {
 								type	: 'text',
 								style	: { width: '100%' },
->>>>>>> upstream/master
 							}
 						},
 						{
@@ -1927,7 +1928,6 @@
 							}
 						},
 						{
-<<<<<<< HEAD
 							key   : 'keep_days',
 							label : '保存日数',
 							input : {
@@ -1943,13 +1943,14 @@
 								type : 'checkbox',
 								label: '有効にする',
 								val  : false
-=======
+							}
+						},
+						{
 							key	: 'recorded_format',
 							label	: '録画ファイル名フォーマット',
 							input	: {
 								type	: 'text',
 								style	: { width: '100%' },
->>>>>>> upstream/master
 							}
 						},
 						{

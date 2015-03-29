@@ -453,7 +453,6 @@ P = Class.create(P, {
 				};
 			}
 
-<<<<<<< HEAD
 			if (rule.keep_days) {
 				row.cell.keep_days = {
 					sortKey  : rule.keep_days || 0,
