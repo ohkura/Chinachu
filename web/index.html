@@ -41,6 +41,105 @@
 	<script type="text/javascript" src="./init.js"></script>
 	<link id="favicon" rel="shortcut icon" type="image/vnd.microsoft.icon" href="./favicon.ico">
 
+	<!-- google cast -->
+	<script type="text/javascript" src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js"></script>
+<script>
+var hasGoogleCast = false;
+
+window['__onGCastApiAvailable'] = (function(loaded, errorInfo) {
+  console.log("gcast api available");
+  if (loaded) {
+    initializeCastApi();
+  } else {
+    console.log(errorInfo);
+  }
+});
+
+function initializeCastApi() {
+  var sessionRequest = new chrome.cast.SessionRequest(
+                       chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID);
+  var apiConfig = new chrome.cast.ApiConfig(sessionRequest,
+    sessionListener,
+    receiverListener);
+  var onError = null;
+  chrome.cast.initialize(apiConfig, onInitSuccess, onError);
+};
+
+function onInitSuccess() {
+  console.log("gcast extension init success");
+}
+
+function receiverListener(e) {
+  if ( e === chrome.cast.ReceiverAvailability.AVAILABLE) {
+    console.log("found chromecast!");
+    hasGoogleCast = true;
+    gcast_session = null;
+  } else {
+    console.log("no chromecast device found!");
+  }
+}
+
+function sessionListener(e) {
+  console.log("session listener");
+  console.log(e);
+}
+
+function onMediaDiscovered(how, media) {
+   gcastCurrentMedia = media;
+}
+
+function play_in_gcast(session, url, title) {
+  console.log("play in gcast");
+  // var mediaInfo = new chrome.cast.media.MediaInfo(url, 'video/mp4');
+  // var mediaInfo = new chrome.cast.media.MediaInfo(url, 'video/webm');
+  var mediaInfo = new chrome.cast.media.MediaInfo(url, 'video/webm');
+  mediaInfo.metadata = new chrome.cast.media.GenericMediaMetadata();
+  mediaInfo.metadata.title = title;
+  // mediaInfo.streamType = chrome.cast.media.StreamType.BUFFERED;
+  var request = new chrome.cast.media.LoadRequest(mediaInfo);
+  request.autoplay = true;
+
+  console.log(session.status);
+  console.log(session.sessionId);
+  console.log(session.media);
+
+  console.log(url);
+  session.loadMedia(request, onMediaDiscovered.bind(this, 'loadMedia'), function(e){console.log(e);});
+
+  console.log(session.media);
+  console.log(session.status);
+  gcast_session = session;
+}
+
+function onMediaDiscovered(how, media) {
+   console.log("onMediaDiscovered");
+   console.log(media);
+   currentMedia = media;
+}
+
+function start_gcast(url, title) {
+  console.log("start_cast");
+  console.log(url);
+  if (gcast_session != null) {
+    console.log("existing gcast session found.  stopping.");
+    gcast_session.stop(null, null);
+  }
+  console.log("starting new gcast session.");
+  chrome.cast.requestSession(onSessionCreated.bind(this, title, url), onLaunchError);
+}
+
+function onSessionCreated(title, url, session) {
+  console.log("session created");
+  play_in_gcast(session, url, title);
+}
+
+function onLaunchError(e) {
+  console.log("onLaunchError");
+  console.log(e);
+}
+
+</script>
+
 </head>
 <body>JavaScript execution required.</body>
 </html>

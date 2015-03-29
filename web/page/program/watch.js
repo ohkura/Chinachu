@@ -88,13 +88,9 @@ P = Class.create(P, {
 		setTimeout(function() {
 			this.view.title.update(titleHtml);
 		}.bind(this), 0);
-		
-		var modal = this.modal = new flagrate.Modal({
-			disableCloseByMask: true,
-			disableCloseButton: true,
-			target: this.view.content,
-			title : 'ストリーミング再生',
-			buttons: [
+
+
+	        var buttons = [
 				{
 					label  : '再生',
 					color  : '@pink',
@@ -133,7 +129,29 @@ P = Class.create(P, {
 						}
 					}.bind(this)
 				}
-			]
+			];
+	        if (hasGoogleCast) {
+		    buttons.push(
+				{
+					label  : 'GoogleCast',
+					color  : '@green',
+					onSelect: function(e, modal) {
+						if (this.form.validate() === false) { return; }
+						var d = this.d = this.form.result();
+						d.use_gcast = true;
+						modal.close();
+						this.play();
+					}.bind(this)
+				});
+		}
+
+
+		var modal = this.modal = new flagrate.Modal({
+			disableCloseByMask: true,
+			disableCloseButton: true,
+			target: this.view.content,
+			title : 'ストリーミング再生',
+			buttons: buttons
 		}).show();
 		
 		if (Prototype.Browser.MobileSafari) {
@@ -494,10 +512,11 @@ P = Class.create(P, {
 		};
 		
 		var togglePlay = function() {
-			
 			if (p._isRecording) return;
-			
-			if (d.ext === 'webm' || d.ext === 'm3u8' || d.ext === 'mp4') {
+
+			if (d.use_gcast) {
+				gcastCurrentMedia.pause(null, null, null);
+			} else if (d.ext === 'webm' || d.ext === 'm3u8' || d.ext === 'mp4') {
 				if (video.paused) {
 					video.play();
 					control.getElementByKey('play').setLabel('Pause');
@@ -515,14 +534,17 @@ P = Class.create(P, {
 				}
 			}
 		};
-		
+
 		// create video view
 		
 		var videoContainer = new flagrate.Element('div', {
 			'class': 'video-container'
 		}).insertTo(this.view.content);
-		
-		if (d.ext === 'webm' || d.ext === 'm3u8' || d.ext === 'mp4') {
+
+		if (d.use_gcast) {
+			console.log(getRequestURI());
+			start_gcast(getRequestURI(), p.title);
+		} else if (d.ext === 'webm' || d.ext === 'm3u8' || d.ext === 'mp4') {
 			var video = new flagrate.Element('video', {
 				src     : getRequestURI(),
 				autoplay: true
@@ -605,7 +627,9 @@ P = Class.create(P, {
 			fastForward.disable();
 			fastRewind.disable();
 			
-			if (d.ext === 'webm' || d.ext === 'mp4') {
+			if (d.use_gcast) {
+				// hoge
+			} else if (d.ext === 'webm' || d.ext === 'mp4') {
 				video.src = uri;
 			} else {
 				vlc.playlist.playItem(vlc.playlist.add(uri));
@@ -646,8 +670,10 @@ P = Class.create(P, {
 		control.getElementByKey('vol').addEventListener('slide', function() {
 			
 			var vol = control.getElementByKey('vol');
-			
-			if (d.ext === 'webm' || d.ext === 'm3u8' || d.ext === 'mp4') {
+
+			if (d.use_gcast) {
+				// hoge
+			} else if (d.ext === 'webm' || d.ext === 'm3u8' || d.ext === 'mp4') {
 				video.volume = vol.getValue() / 10;
 			} else {
 				vlc.audio.volume = vol.getValue() * 10;
@@ -662,7 +688,9 @@ P = Class.create(P, {
 			
 			var current = 0;
 			
-			if (d.ext === 'webm' || d.ext === 'm3u8' || d.ext === 'mp4') {
+			if (d.use_gcast) {
+				// hoge
+			} else if (d.ext === 'webm' || d.ext === 'm3u8' || d.ext === 'mp4') {
 				current = video.currentTime;
 			} else {
 				if (vlc.playlist.isPlaying) {
