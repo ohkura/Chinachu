@@ -23,11 +23,52 @@ P = Class.create(P, {
 	refresh: function() {
 		
 		this.app.pm.realizeHash(true);
+		this.drawMain();
 		
 		return this;
 	}
 	,
 	initToolbar: function _initToolbar() {
+		this.view.toolbar.add({
+			key: 'enable-multiselect',
+			ui : new sakura.ui.Button({
+				label  : '{0}'.__('ENABLE MUTLI SELECTION'.__()),
+				icon   : './icons/eraser.png',
+				onClick: function() {
+					console.log("hello1");
+					this.grid.multiSelect = true;
+					this.grid.disableSelect = false;
+					this.refresh();
+					console.log("hello2");
+				}.bind(this)
+			})
+		});
+
+		this.view.toolbar.add({
+			key: 'delete-selected',
+			ui : new sakura.ui.Button({
+				label  : '{0}'.__('DELETE SELECTED'.__()),
+				icon   : './icons/eraser.png',
+				onClick: function() {
+					var selected = this.grid.getSelectedRows();
+					var nums = [];
+					selected.each(function(row) {
+						var program = row.data;
+						var dummy = new Ajax.Request('./api/recorded/' + program.id + '/file.json', {
+							method    : 'delete',
+							onSuccess: function () {
+								console.log(program.id + " deleted successfully.");
+							},
+							onFailure: function (t) {
+								console.log(program.id + " failed to delete.");
+							}
+						});
+						console.log(program.id);
+					});
+					this.grid.deselectAll();
+				}.bind(this)
+			})
+		});
 		
 		this.view.toolbar.add({
 			key: 'search',
@@ -49,8 +90,8 @@ P = Class.create(P, {
 		
 		
 		this.grid = new flagrate.Grid({
-			multiSelect  : false,
-			disableSelect: true,
+			multiSelect  : true,
+			disableSelect: false,
 			pagination   : true,
 			fill         : true,
 			cols: [
@@ -89,7 +130,7 @@ P = Class.create(P, {
 					align: 'center'
 				}
 			],
-			onClick: function(e, row) {
+			onDblClick: function(e, row) {
 				window.location.href = '#!/program/view/id=' + row.data.id + '/';
 			}.bind(this)
 		}).insertTo(this.view.content);
@@ -306,7 +347,7 @@ P = Class.create(P, {
 	}
 	,
 	viewSearchModal: function() {
-		
+		console.log('hello');
 		var modal = new flagrate.Modal({
 			title  : '録画番組検索',
 			buttons: [
