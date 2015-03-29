@@ -26,7 +26,7 @@
   "/:id/watch": {
     "script" : "recorded-program-watch",
     "methods": ["get"],
-    "types"  : ["txt", "m3u8", "xspf", "m2ts", "f4v", "flv", "webm", "asf", "mp4"]
+    "types"  : ["mp4", "xspf", "m2ts", "webm"]
   },
 
   "/:id/keep_days": {

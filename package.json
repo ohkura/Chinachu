@@ -34,8 +34,7 @@
     "string": "~1.5.1",
     "mtwitter": "~1.5.2",
     "hoard": "~0.1.5",
-    "execsync": "0.0.5",
-		"podcast": "0.1.0"
+    "podcast": "0.1.0"
   },
   "devDependencies": {
     "mocha": "*",
@@ -46,6 +45,6 @@
     "test": "mocha -R spec"
   },
   "engines": {
-    "node": ">=0.10.13"
+    "node": ">=0.12.0"
   }
 }

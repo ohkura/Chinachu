@@ -313,7 +313,7 @@ function doRecord(program) {
 	program.tuner = tuner;
 	
 	// 保存先パス
-	recPath = config.recordedDir + chinachu.formatRecordedName(program, config.recordedFormat);
+	recPath = config.recordedDir + chinachu.formatRecordedName(program, program.recordedFormat || config.recordedFormat);
 	program.recorded = recPath;
 	
 	// 保存先ディレクトリ
@@ -602,9 +602,23 @@ function main() {
 
 		recording.forEach(recordingChecker);
 
-		if ((scheduler === null) && (clock - scheduled > schedulerIntervalTime) && ((next === 0) || (next - clock > schedulerProcessTime)) && ((schedulerSleepStartHour > new Date().getHours()) || (schedulerSleepEndHour <= new Date().getHours()))) {
-			startScheduler();
-			scheduled = clock;
+		if ((scheduler === null) && (clock - scheduled > schedulerIntervalTime) && ((next === 0) || (next - clock > schedulerProcessTime))) {
+			if (
+				(
+					schedulerSleepStartHour < schedulerSleepEndHour && (
+						schedulerSleepStartHour > new Date().getHours() ||
+						schedulerSleepEndHour <= new Date().getHours()
+					)
+				) || (
+					schedulerSleepStartHour > schedulerSleepEndHour && (
+						schedulerSleepStartHour > new Date().getHours() &&
+						schedulerSleepEndHour <= new Date().getHours()
+					)
+				)
+			) {
+				startScheduler();
+				scheduled = clock;
+			}
 		}
 
 		if (clock - autoDeleteChecked > autoDeleteCheckerIntervalTime) {

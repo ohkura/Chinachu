@@ -255,6 +255,10 @@ P = Class.create(P, {
 					key  : 'convert_mp4',
 					label: 'MP4',
 					width: 50
+				},
+				{
+					key  : 'recorded_format',
+					label: '録画ファイル名フォーマット'
 				}
 			],
 			onSelect  : this.updateToolbar.bind(this),
@@ -449,6 +453,7 @@ P = Class.create(P, {
 				};
 			}
 
+<<<<<<< HEAD
 			if (rule.keep_days) {
 				row.cell.keep_days = {
 					sortKey  : rule.keep_days || 0,
@@ -475,6 +480,19 @@ P = Class.create(P, {
 				};
 			}
 
+			if (rule.recorded_format) {
+				row.cell.recorded_format = {
+					text       : rule.recorded_format,
+					attribute  : { title: rule.recorded_format.truncate(256) }
+				};
+			} else {
+				row.cell.recorded_format = {
+					className: 'default',
+					sortKey  : 0,
+					text     : 'default'
+				};
+			}
+			
 			rows.push(row);
 		});
 		

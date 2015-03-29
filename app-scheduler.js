@@ -171,7 +171,7 @@ function scheduler() {
 		ch.programs.forEach(function (p) {
 			if (idMap[p.id]) {
 				util.log('**WARNING**: ' + p.id + ' is duplicated!');
-				util.puts(JSON.stringify(idMap[p.id], null, '  '), JSON.stringify(p, null, '  '));
+				console.log(JSON.stringify(idMap[p.id], null, '  '), JSON.stringify(p, null, '  '));
 			} else {
 				idMap[p.id] = p;
 			}
@@ -321,6 +321,15 @@ function scheduler() {
 		}
 	}
 	
+	// ruleにもしあればreserveにrecordedFormatを追加
+	reserves.forEach(function(reserve){
+		rules.forEach(function(rule){
+			if(typeof(rule.recorded_format) !== 'undefined' && chinachu.programMatchesRule(rule, reserve)){
+				reserve.recordedFormat = rule.recorded_format;
+			}
+		});
+	});
+	
 	// results
 	util.log('MATCHES: ' + matches.length.toString(10));
 	util.log('DUPLICATES: ' + duplicateCount.toString(10));
@@ -349,15 +358,19 @@ function convertPrograms(p, ch) {
 			continue;
 		}
 		
-		var title = c.title[0]._
+		var title = c.title[0]._;
+		
+		title = title
 			.replace(/【.{1,2}】/g, '')
 			.replace(/\[.\]/g, '')
-			.replace(/アニメ「([^「」]+)」/g, '$1')
-			.replace(/([^場版])「.+」/g, '$1')
 			.replace(/(#|＃|♯)[0-9０１２３４５６７８９]+/g, '')
-			.replace(/第([0-9]+|[０１２３４５６７８９零一壱二弐三参四五伍六七八九十拾]+)話/g, '')
-			.replace(/([0-9]+|[０１２３４５６７８９]+)憑目/g, '')
-			.trim();
+			.replace(/第([0-9]+|[０１２３４５６７８９零一壱二弐三参四五伍六七八九十拾]+)(話|回)/g, '');
+		
+		if (c.category[1]._ === 'anime') {
+			title = title.replace(/アニメ「([^「」]+)」/g, '$1');
+		}
+		
+		title = title.trim();
 		
 		var desc = c.desc[0]._ || '';
 		
@@ -381,56 +394,55 @@ function convertPrograms(p, ch) {
 		}
 		
 		var episodeNumber = null;
-		if (flags.indexOf('新') !== -1) {
+		var episodeNumberMatch = (c.title[0]._ + ' ' + desc).match(/(#|＃|♯)[0-9０１２３４５６７８９]+|第([0-9]+|[０１２３４５６７８９零一二三四五六七八九十]+)(話|回)|Episode ?[IⅡⅢⅣⅤⅥⅦⅧⅨⅩⅪⅫVX]+/);
+		if (episodeNumberMatch !== null) {
+			var episodeNumberString = episodeNumberMatch[0];
+
+			episodeNumberString = episodeNumberString
+				.replace(/#|＃|♯|第|話|回/g, '')
+				.replace(/０|零/g, '0')
+				.replace(/４|Ⅳ|IV|ＩＶ/g, '4')
+				.replace(/８|Ⅷ|VIII|ＶＩＩＩ/g, '8')
+				.replace(/７|Ⅶ|VII|ＶＩＩ/g, '7')
+				.replace(/６|Ⅵ|VI|ＶＩ/g, '6')
+				.replace(/５|Ⅴ/g, '5')
+				.replace(/９|Ⅸ|IX|ＩＸ/g, '9')
+				.replace(/Ⅻ|XII|ＸＩＩ/g, '12')
+				.replace(/Ⅺ|XI|ＸＩ/g, '11')
+				.replace(/３|Ⅲ|III|ＩＩＩ/g, '3')
+				.replace(/２|Ⅱ|II|ＩＩ/g, '2')
+				.replace(/１|Ⅰ|I|Ｉ/g, '1')
+				.replace(/Ⅹ|X|Ｘ/g, '10')
+				.replace(/二十一/g, '21')
+				.replace(/二十二/g, '22')
+				.replace(/二十三/g, '23')
+				.replace(/二十四/g, '24')
+				.replace(/二十/g, '20')
+				.replace(/十一/g, '11')
+				.replace(/十二/g, '12')
+				.replace(/十三/g, '13')
+				.replace(/十四/g, '14')
+				.replace(/十五/g, '15')
+				.replace(/十六/g, '16')
+				.replace(/十七/g, '17')
+				.replace(/十八/g, '18')
+				.replace(/十九/g, '19')
+				.replace(/十/g, '10')
+				.replace(/一/g, '1')
+				.replace(/二/g, '2')
+				.replace(/三/g, '3')
+				.replace(/四/g, '4')
+				.replace(/五/g, '5')
+				.replace(/六/g, '6')
+				.replace(/七/g, '7')
+				.replace(/八/g, '8')
+				.replace(/九/g, '9')
+				.trim();
+
+			episodeNumber = parseInt(episodeNumberString, 10);
+		}
+		if (episodeNumber === null && flags.indexOf('新') !== -1) {
 			episodeNumber = 1;
-		} else {
-			var episodeNumberMatch = (c.title[0]._ + ' ' + desc).match(/(#|＃|♯)[0-9０１２３４５６７８９]+|第([0-9]+|[０１２３４５６７８９零一二三四五六七八九十]+)(憑目|話)|Episode ?[IⅡⅢⅣⅤⅥⅦⅧⅨⅩⅪⅫVX]+/);
-			if (episodeNumberMatch !== null) {
-				var episodeNumberString = episodeNumberMatch[0];
-				
-				episodeNumberString = episodeNumberString
-					.replace(/#|＃|♯|第|話|憑目/g, '')
-					.replace(/０|零/g, '0')
-					.replace(/４|Ⅳ|IV|ＩＶ/g, '4')
-					.replace(/８|Ⅷ|VIII|ＶＩＩＩ/g, '8')
-					.replace(/７|Ⅶ|VII|ＶＩＩ/g, '7')
-					.replace(/６|Ⅵ|VI|ＶＩ/g, '6')
-					.replace(/５|Ⅴ/g, '5')
-					.replace(/９|Ⅸ|IX|ＩＸ/g, '9')
-					.replace(/Ⅻ|XII|ＸＩＩ/g, '12')
-					.replace(/Ⅺ|XI|ＸＩ/g, '11')
-					.replace(/３|Ⅲ|III|ＩＩＩ/g, '3')
-					.replace(/２|Ⅱ|II|ＩＩ/g, '2')
-					.replace(/１|Ⅰ|I|Ｉ/g, '1')
-					.replace(/Ⅹ|X|Ｘ/g, '10')
-					.replace(/二十一/g, '21')
-					.replace(/二十二/g, '22')
-					.replace(/二十三/g, '23')
-					.replace(/二十四/g, '24')
-					.replace(/二十/g, '20')
-					.replace(/十一/g, '11')
-					.replace(/十二/g, '12')
-					.replace(/十三/g, '13')
-					.replace(/十四/g, '14')
-					.replace(/十五/g, '15')
-					.replace(/十六/g, '16')
-					.replace(/十七/g, '17')
-					.replace(/十八/g, '18')
-					.replace(/十九/g, '19')
-					.replace(/十/g, '10')
-					.replace(/一/g, '1')
-					.replace(/二/g, '2')
-					.replace(/三/g, '3')
-					.replace(/四/g, '4')
-					.replace(/五/g, '5')
-					.replace(/六/g, '6')
-					.replace(/七/g, '7')
-					.replace(/八/g, '8')
-					.replace(/九/g, '9')
-					.trim();
-				
-				episodeNumber = parseInt(episodeNumberString, 10);
-			}
 		}
 		
 		var tcRegex   = /^(.{4})(.{2})(.{2})(.{2})(.{2})(.{2}).+$/;

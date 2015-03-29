@@ -340,18 +340,6 @@ P = Class.create(P, {
 						isRequired: true,
 						items     : [
 							{
-								label     : '320x180 (16:9)',
-								value     : '320x180'
-							},
-							{
-								label     : '640x360 (HVGAW/16:9)',
-								value     : '640x360'
-							},/*
-							{
-								label     : '640x480 (VGA/4:3)',
-								value     : '640x480'
-							},*/
-							{
 								label     : '960x540 (qHD/16:9)',
 								value     : '960x540'
 							},
@@ -445,45 +433,23 @@ P = Class.create(P, {
 			]
 		});
 		
-		if (Prototype.Browser.MobileSafari) {
+		this.form.fields[0].input.items.push({
+			label     : 'M2TS',
+			value     : 'm2ts'
+		});
+
+		if (program.mp4 || /Trident/.test(navigator.userAgent) === true) {
 			this.form.fields[0].input.items.push({
-				label     : 'HLS (MPEG-2 TS)',
-				value     : 'm3u8',
+				label     : 'MP4',
+				value     : 'mp4',
 				isSelected: true
 			});
-
-			if (program.mp4) {
-				this.form.fields[0].input.items.push({
-					label     : 'MP4',
-					value     : 'mp4',
-				});
-			}
-		}
-		
-		if (!Prototype.Browser.MobileSafari) {
-			this.form.fields[0].input.items.push({
-				label     : 'M2TS',
-				value     : 'm2ts'
-			});
-			
+		} else {
 			this.form.fields[0].input.items.push({
 				label     : 'WebM',
 				value     : 'webm',
 				isSelected: true
 			});
-
-		  if (program.mp4) {
-			  this.form.fields[0].input.items.push({
-					label     : 'MP4',
-					value     : 'mp4',
-					isSelected: false
-			  });
-			}
-			
-			/* this.form.fields[0].input.items.push({
-				label     : 'FLV',
-				value     : 'flv'
-			}); */
 		}
 		
 		this.form.render(modal.content);
@@ -513,10 +479,10 @@ P = Class.create(P, {
 		
 		var togglePlay = function() {
 			if (p._isRecording) return;
-
+			
 			if (d.use_gcast) {
 				gcastCurrentMedia.pause(null, null, null);
-			} else if (d.ext === 'webm' || d.ext === 'm3u8' || d.ext === 'mp4') {
+			} else if (d.ext === 'webm' || d.ext === 'mp4') {
 				if (video.paused) {
 					video.play();
 					control.getElementByKey('play').setLabel('Pause');
@@ -544,16 +510,22 @@ P = Class.create(P, {
 		if (d.use_gcast) {
 			console.log(getRequestURI());
 			start_gcast(getRequestURI(), p.title);
-		} else if (d.ext === 'webm' || d.ext === 'm3u8' || d.ext === 'mp4') {
+		} else if (d.ext === 'webm' || d.ext === 'mp4') {
 			var video = new flagrate.Element('video', {
-				src     : getRequestURI(),
-				autoplay: true
+				autoplay: true,
+				controls: true
 			}).insertTo(videoContainer);
+			
+			new flagrate.Element('source', {
+				src     : getRequestURI(),
+				type    : 'video/' + d.ext
+			}).insertTo(video);
 			
 			video.addEventListener('click', togglePlay);
 			
-			// video.load();
 			video.volume = 1;
+			
+			video.play();
 		} else {
 			var vlc = flagrate.createElement('embed', {
 				type: 'application/x-vlc-plugin',
@@ -581,7 +553,7 @@ P = Class.create(P, {
 			items: [
 				{
 					key    : 'play',
-					element: new flagrate.Button({ label: 'Play / Pause', onSelect: togglePlay})
+					element: new flagrate.Button({ label: 'Pause', onSelect: togglePlay})
 				},
 				'--',
 				{
@@ -635,6 +607,8 @@ P = Class.create(P, {
 				vlc.playlist.playItem(vlc.playlist.add(uri));
 			}
 			
+			video.play();
+			
 			setTimeout(function() {
 				seek.enable();
 				fastForward.enable();
@@ -673,7 +647,7 @@ P = Class.create(P, {
 
 			if (d.use_gcast) {
 				// hoge
-			} else if (d.ext === 'webm' || d.ext === 'm3u8' || d.ext === 'mp4') {
+			} else if (d.ext === 'webm' || d.ext === 'mp4') {
 				video.volume = vol.getValue() / 10;
 			} else {
 				vlc.audio.volume = vol.getValue() * 10;
@@ -690,7 +664,7 @@ P = Class.create(P, {
 			
 			if (d.use_gcast) {
 				// hoge
-			} else if (d.ext === 'webm' || d.ext === 'm3u8' || d.ext === 'mp4') {
+			} else if (d.ext === 'webm' || d.ext === 'mp4') {
 				current = video.currentTime;
 			} else {
 				if (vlc.playlist.isPlaying) {
