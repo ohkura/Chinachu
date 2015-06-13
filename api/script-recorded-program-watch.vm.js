@@ -200,6 +200,10 @@ function main(avinfo) {
 			if (d.r)  args.push('-r', d.r);
 			if (d.ar) args.push('-ar', d.ar);
 			
+			if (!d.s || d.s === '1920x1080') {
+				args.push('-filter:v', 'yadif');
+			}
+			
 			if (d['b:v']) {
 				args.push('-b:v', d['b:v'], '-minrate:v', d['b:v'], '-maxrate:v', d['b:v']);
 				args.push('-bufsize:v', videoBitrate * 8);
@@ -239,27 +243,27 @@ function main(avinfo) {
 			if (d['c:v'] === 'copy' && d['c:a'] === 'copy' && !d.t) {
 				readStream.pipe(response);
 			} else {
-				var avconv = child_process.spawn('avconv', args);
+				var ffmpeg = child_process.spawn('ffmpeg', args);
 
-				avconv.stdout.pipe(response);
+				ffmpeg.stdout.pipe(response);
 				
-				readStream.pipe(avconv.stdin);
+				readStream.pipe(ffmpeg.stdin);
 
-				avconv.stderr.on('data', function(d) {
-					util.log('#avconv: ' + d);
+				ffmpeg.stderr.on('data', function(d) {
+					util.log('#ffmpeg: ' + d);
 				});
 
-				avconv.on('exit', function(code) {
+				ffmpeg.on('exit', function(code) {
 					setTimeout(function() { response.end(); }, 1000);
 				});
 
 				request.on('close', function() {
-					avconv.stdout.removeAllListeners('data');
-					avconv.stderr.removeAllListeners('data');
-					avconv.kill('SIGKILL');
+					ffmpeg.stdout.removeAllListeners('data');
+					ffmpeg.stderr.removeAllListeners('data');
+					ffmpeg.kill('SIGKILL');
 				});
 				
-				children.push(avconv);// 安全対策
+				children.push(ffmpeg);// 安全対策
 			}
 			
 			return;
