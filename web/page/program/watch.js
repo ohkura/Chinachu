@@ -93,71 +93,64 @@ P = Class.create(P, {
 		};
 		
 		var set = JSON.parse(localStorage.getItem('program.watch.settings') || '{}');
-		
-		var modal = this.modal = new flagrate.Modal({
-			disableCloseByMask: true,
-			disableCloseButton: true,
-			target: this.view.content,
-			title : 'ストリーミング再生',
-			buttons: [
-				{
-					label  : '再生',
-					color  : '@pink',
-					onSelect: function(e, modal) {
-						if (this.form.validate() === false) { return; }
+	
+		var buttons = [
+		    {
+			label  : '再生',
+			color  : '@pink',
+			onSelect: function(e, modal) {
+			    if (this.form.validate() === false) { return; }
+			    var d = this.d = this.form.result();
+			    saveSettings(d);
 						
-						var d = this.d = this.form.result();
+			    if ((d.ext === 'm2ts') && (!window.navigator.plugins['VLC Web Plugin'])) {
+				new flagrate.Modal({
+				    title: 'エラー',
+				    text : 'MPEG-2 TSコンテナの再生にはVLC Web Pluginが必要です。'
+				}).show();
+				return;
+			    }
 						
-						saveSettings(d);
+			    modal.close();
 						
-						if ((d.ext === 'm2ts') && (!window.navigator.plugins['VLC Web Plugin'])) {
-							new flagrate.Modal({
-								title: 'エラー',
-								text : 'MPEG-2 TSコンテナの再生にはVLC Web Pluginが必要です。'
-							}).show();
-							return;
-						}
+			    this.play();
+			}.bind(this)
+		    },
+		    {
+			label  : 'XSPF',
+			color  : '@orange',
+			onSelect: function(e, modal) {
+			    if (this.form.validate() === false) { return; }
+
+			    var d = this.form.result();
 						
-						modal.close();
+			    saveSettings(d);
 						
-						this.play();
-					}.bind(this)
-				},
-				{
-					label  : 'XSPF',
-					color  : '@orange',
-					onSelect: function(e, modal) {
-						if (this.form.validate() === false) { return; }
-						
-						var d = this.form.result();
-						
-						saveSettings(d);
-						
-						if (program._isRecording) {
-							d.prefix = window.location.protocol + '//' + window.location.host + '/api/recording/' + program.id + '/';
-							window.open('./api/recording/' + program.id + '/watch.xspf?' + Object.toQueryString(d));
-						} else {
-							d.prefix = window.location.protocol + '//' + window.location.host + '/api/recorded/' + program.id + '/';
-							window.open('./api/recorded/' + program.id + '/watch.xspf?' + Object.toQueryString(d));
-						}
-					}.bind(this)
-				}
-			];
+			    if (program._isRecording) {
+				d.prefix = window.location.protocol + '//' + window.location.host + '/api/recording/' + program.id + '/';
+				window.open('./api/recording/' + program.id + '/watch.xspf?' + Object.toQueryString(d));
+			    } else {
+				d.prefix = window.location.protocol + '//' + window.location.host + '/api/recorded/' + program.id + '/';
+				window.open('./api/recorded/' + program.id + '/watch.xspf?' + Object.toQueryString(d));
+			    }
+			}.bind(this)
+		    }
+		];
+
 	        if (hasGoogleCast) {
 		    buttons.push(
-				{
-					label  : 'GoogleCast',
-					color  : '@green',
-					onSelect: function(e, modal) {
-						if (this.form.validate() === false) { return; }
-						var d = this.d = this.form.result();
-						d.use_gcast = true;
-						modal.close();
-						this.play();
-					}.bind(this)
-				});
+			{
+			    label  : 'GoogleCast',
+			    color  : '@green',
+			    onSelect: function(e, modal) {
+				if (this.form.validate() === false) { return; }
+				var d = this.d = this.form.result();
+				d.use_gcast = true;
+				modal.close();
+				this.play();
+			    }.bind(this)
+			});
 		}
-
 
 		var modal = this.modal = new flagrate.Modal({
 			disableCloseByMask: true,
@@ -179,7 +172,7 @@ P = Class.create(P, {
 			isSelected: set.ext === 'm2ts'
 		});
 
-		if (/Trident/.test(navigator.userAgent) === true) {
+		if (program.mp4 || /Trident/.test(navigator.userAgent) === true) {
 			exts.push({
 				label     : 'MP4',
 				value     : 'mp4',
@@ -482,25 +475,6 @@ P = Class.create(P, {
 				}
 			]
 		});
-		
-		this.form.fields[0].input.items.push({
-			label     : 'M2TS',
-			value     : 'm2ts'
-		});
-
-		if (program.mp4 || /Trident/.test(navigator.userAgent) === true) {
-			this.form.fields[0].input.items.push({
-				label     : 'MP4',
-				value     : 'mp4',
-				isSelected: true
-			});
-		} else {
-			this.form.fields[0].input.items.push({
-				label     : 'WebM',
-				value     : 'webm',
-				isSelected: true
-			});
-		}
 		
 		this.form.render(modal.content);
 		

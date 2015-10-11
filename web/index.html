@@ -63,7 +63,7 @@ function initializeCastApi() {
     receiverListener);
   var onError = null;
   chrome.cast.initialize(apiConfig, onInitSuccess, onError);
-};
+}
 
 function onInitSuccess() {
   console.log("gcast extension init success");
