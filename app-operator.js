@@ -82,10 +82,10 @@ if (config.operTweeter && config.operTweeterAuth && config.operTweeterFormat) {
 //
 var schedulerProcessTime    = config.operSchedulerProcessTime    || 1000 * 60 * 20;//20分
 var schedulerIntervalTime   = config.operSchedulerIntervalTime   || 1000 * 60 * 60;//60分
-var autoDeleteCheckerIntervalTime = config.autoDeleteCheckerIntervalTime || 1000 * 60 * 60;//60分
-var encodingCheckerIntervalTime = config.autoDeleteCheckerIntervalTime || 1000 * 60;//1分
-var schedulerSleepStartHour = config.operSchedulerSleepStartHour || 1;
-var schedulerSleepEndHour   = config.operSchedulerSleepEndHour   || 5;
+var autoDeleteCheckerIntervalTime = config.autoDeleteCheckerIntervalTime || 1000 * 60;//1分
+var encodingCheckerIntervalTime = config.encodingCheckerIntervalTime || 1000 * 60;//1分
+var schedulerSleepStartHour = config.operSchedulerSleepStartHour || 2;
+var schedulerSleepEndHour   = config.operSchedulerSleepEndHour   || 3;
 var schedulerEpgRecordTime  = config.schedulerEpgRecordTime      || 60;
 var prepTime    = config.operRecPrepTime    || 1000 * 60;//60秒
 var offsetStart = config.operRecOffsetStart || 1000 * 5;
@@ -173,7 +173,8 @@ function stopScheduler() {
 
 // スケジューラーを開始
 function startScheduler(channel) {
-	if ((scheduler !== null) || (recording.length !== 0)) { return; }
+	// if ((scheduler !== null) || (recording.length !== 0)) { return; }
+	if ((scheduler !== null) || (recording.length > 4)) { return; }
 	
 	var output, finalize;
 	
@@ -288,7 +289,13 @@ function doRecord(program) {
 		util.log('WRITE: ' + RECORDING_DATA_FILE);
 		return;
 	}
-	
+
+        // 録画先ディレクトリがあることを確認
+	if (!fs.existsSync(config.recordedDir)) {
+		util.log('MKDIR: ' + config.recordedDir);
+		mkdirp.sync(config.recordedDir);
+	}
+
 	// チューナーを選ぶ
 	tuner = chinachu.getFreeTunerSync(config.tuners, program.channel.type);
 	
@@ -525,11 +532,19 @@ function autoDeleteChecker(program, i) {
 		if (Date.now() > new Date(remove_at)) {
 			if (fs.existsSync(program.recorded)) {
 				util.log('AUTO DELETE: ' + program.recorded);
-				fs.unlinkSync(program.recorded);
+				fs.unlink(program.recorded, function (err) {
+				    if (err) {
+					util.log('Failed to delete: ' + program.recorded);
+				    }
+				});
 			}
 			if (program.mp4 && fs.existsSync(program.mp4)) {
 				util.log('AUTO DELETE MP4: ' + program.recorded);
-				fs.unlinkSync(program.mp4);
+				fs.unlink(program.mp4, function (err) {
+				    if (err) {
+					util.log('Failed to delete: ' + program.mp4);
+				    }
+				});
 			}
 		}
 	}

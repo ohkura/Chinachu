@@ -129,6 +129,9 @@ chinachu_installer () {
       "ffmpeg" )
         cmd="chinachu_installer_ffmpeg"
         ;;
+      "ffmpeg" )
+        cmd="chinachu_installer_ffmpeg"
+        ;;
       * )
         cmd="chinachu_installer"
         ;;
@@ -471,6 +474,112 @@ chinachu_installer_ffmpeg () {
   rm -rfv "$USR_DIR/bin/avprobe"
   ln -sv "$USR_DIR/bin/ffmpeg" "$USR_DIR/bin/avconv"
   ln -sv "$USR_DIR/bin/ffprobe" "$USR_DIR/bin/avprobe"
+  
+  echo "ffmpeg --> done."
+  
+  return 0
+}
+
+chinachu_installer_ffmpeg () {
+  remove_dir "$USR_DIR/src/ffmpeg"
+  
+  local FFMPEG_GIT="git://source.ffmpeg.org/ffmpeg.git"
+  
+  echo "Installing libav from $FFMPEG_GIT"
+  mkdir "$USR_DIR/src"
+  cd "$USR_DIR/src"
+  git clone $FFMPEG_GIT ffmpeg
+
+  cd ffmpeg
+  
+./configure \
+    --prefix=$USR_DIR \
+    --enable-static \
+    --disable-shared \
+    --enable-nonfree \
+    --enable-nvenc \
+    --enable-gpl \
+    --disable-avdevice \
+    --disable-network \
+    --disable-devices \
+    --enable-libx264 \
+    --enable-libvpx \
+    --enable-libfdk-aac \
+    --enable-libvorbis \
+    --enable-libvo_aacenc \
+    --enable-version3 \
+    --disable-debug \
+    --disable-decoders \
+    --disable-encoders \
+    --disable-demuxers \
+    --disable-muxers \
+    --disable-parsers \
+    --disable-protocols \
+    --disable-filters \
+    --enable-zlib \
+    --enable-decoder=aac \
+    --enable-decoder=ac3 \
+    --enable-decoder=mp2 \
+    --enable-decoder=mp3 \
+    --enable-decoder=mpeg2video \
+    --enable-decoder=mpeg4 \
+    --enable-decoder=pcm_alaw \
+    --enable-decoder=pcm_bluray \
+    --enable-decoder=h264 \
+    --enable-decoder=h265 \
+    --enable-encoder=aac \
+    --enable-encoder=png \
+    --enable-encoder=mjpeg \
+    --enable-encoder=libx264 \
+    --enable-encoder=libfaac \
+    --enable-encoder=libmfx \
+    --enable-encoder=libvorbis \
+    --enable-encoder=libvpx_vp8 \
+    --enable-encoder=libfdk_aac \
+    --enable-encoder=mpeg2video \
+    --enable-encoder=mpeg4 \
+    --enable-encoder=nvenc \
+    --enable-encoder=nvenc_h265 \
+    --enable-demuxer=mpegts \
+    --enable-muxer=gif \
+    --enable-muxer=mjpeg \
+    --enable-muxer=mp4 \
+    --enable-muxer=mpegts \
+    --enable-muxer=webm \
+    --enable-muxer=image2 \
+    --enable-parser=aac \
+    --enable-parser=ac3 \
+    --enable-parser=h264 \
+    --enable-parser=hevc \
+    --enable-parser=mjpeg \
+    --enable-parser=mpeg4video \
+    --enable-parser=mpegaudio \
+    --enable-parser=mpegvideo \
+    --enable-parser=opus \
+    --enable-parser=png \
+    --enable-parser=vorbis \
+    --enable-parser=vp8 \
+    --enable-protocol=pipe \
+    --enable-protocol=file \
+    --enable-filter=crop \
+    --enable-filter=hqdn3d \
+    --enable-filter=pad \
+    --enable-filter=resample \
+    --enable-filter=scale \
+    --enable-filter=setpts \
+    --enable-filter=settb \
+    --enable-filter=yadif \
+    --enable-filter=aresample \
+    --enable-filter=trim \
+    --extra-cflags="-I${USR_DIR}/include -I/home/ohkura/nvenc_5.0.1_sdk/Samples/common/inc --static" \
+    --extra-ldflags="-L${USR_DIR}/lib"
+  
+  make || fail "couldn't make ffmpeg"
+  make install && make clean
+  
+  cd $CHINACHU_DIR
+  
+  remove_dir "$USR_DIR/src/ffmpeg"
   
   echo "ffmpeg --> done."
   

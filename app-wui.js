@@ -642,7 +642,22 @@ function httpServerMain(req, res, query) {
 	};
 	
 	// 静的ファイルまたはAPIレスポンスの分岐
-	if (req.url.match(/^\/api\/.*$/) === null) {
+	if (req.url.match(/^\/api\/.*watch\.m2ts.*$/) !== null) {
+		util.log("skipping auth for watch.m2ts");
+ 	  process.nextTick(responseApi);
+  } else if (req.url.match(/^\/api\/.*watch\.m3u8.*$/) !== null) {
+		util.log("skipping auth for watch.m3u8");
+ 	  process.nextTick(responseApi);
+  // } else if (req.url.match(/^\/api\/.*rss$/) !== null) {
+	// 	util.log("skipping auth for watch.rss");
+ 	//   process.nextTick(responseApi);
+  } else if (req.url.match(/^\/api\/.*watch\.mp4.*$/) !== null) {
+		util.log("skipping auth for watch.mp4");
+ 	  process.nextTick(responseApi);
+  } else if (req.url.match(/^\/api\/.*watch\.webm.*$/) !== null) {
+		util.log("skipping auth for watch.webm");
+ 	  process.nextTick(responseApi);
+	} else if (req.url.match(/^\/api\/.*$/) === null) {
 		if (fs.existsSync(filename) === false) { return resErr(404); }
 		
 		if (req.url.match(/^\/apple-.+\.png$/) !== null) {
