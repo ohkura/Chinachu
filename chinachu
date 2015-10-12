@@ -62,7 +62,7 @@ main () {
     reserve | unreserve | skip | unskip | stop | \
     rule | enrule | disrule | rmrule | \
     rules | reserves | recording | recorded | \
-    cleanup | unlock | ircbot | test )
+    cleanup | diskcleanup | unlock | ircbot | test )
       cmd="chinachu_$cmd"
       ;;
     * )
@@ -969,6 +969,23 @@ chinachu_cleanup () {
   done
 }
 
+chinachu_diskcleanup () {
+  echo "Clean-up the recorded files."
+  
+  while [ 1 ]; do
+    echo -n "Do you want to continue [Y/n]? "
+    read line
+    case ${line:-y} in
+      [yY])
+        node app-cli.js -mode diskcleanup "$@" && return 0
+        ;;
+      [nN])
+        echo "Abort." && return 0
+        ;;
+    esac
+  done
+}
+
 chinachu_unlock () {
   echo "Unlock the tuners."
   echo "*WARNING* Do NOT run this command when on running Chinachu services."
@@ -1030,6 +1047,7 @@ recording               Show a list of recording programs.
 recorded                Show a list of recorded programs.
 
 cleanup                 Clean-up the recorded list.
+diskcleanup             Clean-up the recorded files.
 
 ircbot [options]        Connect to IRC server and run a ircbot. (Experimental)
 

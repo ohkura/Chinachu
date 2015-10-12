@@ -327,6 +327,9 @@ switch (opts.get('mode')) {
 	case 'cleanup':
 		chinachuCleanup();
 		break;
+	case 'diskcleanup':
+		chinachuDiskCleanup();
+		break;
 	// IRC bot
 	case 'ircbot':
 		chinachuIrcbot();
@@ -819,6 +822,75 @@ function chinachuCleanup() {
 	console.log(t.print().trim());
 	
 	process.exit(0);
+}
+
+// Disk Clean-up
+function chinachuDiskCleanup() {
+    recorded_dir = config['recordedDir']
+    mp4_dir = config['mp4Dir']
+    console.log(recorded_dir);
+    console.log(mp4_dir);
+
+    var t = new Table;
+
+    files = fs.readdirSync(recorded_dir)
+    files.forEach(function(f) {
+	recorded_file = recorded_dir + f;
+	found = false;
+	recorded.forEach(function(a) {
+	    if (recorded_file == a.recorded) {
+		found = true;
+	    }
+	});
+	if (found) {
+	    t.cell('action', 'exist');
+	} else {
+	    if (opts.get('simulation')) {
+		t.cell('action', '[simulation] removed');
+	    } else {
+		fs.unlinkSync(recorded_file, function (err) {
+		    if (err) {
+			console.log('Failed to delete: ' + recorded_file);
+		    }
+		});
+		t.cell('action', 'removed');
+	    }
+	}
+	t.cell('Recorded', f);
+	t.newRow();
+    });
+
+    files = fs.readdirSync(mp4_dir)
+    files.forEach(function(f) {
+	mp4_file = mp4_dir + f;
+	found = false;
+	recorded.forEach(function(a) {
+	    if (mp4_file == a.mp4) {
+		found = true;
+	    }
+	});
+	if (found) {
+	    t.cell('action', 'exist');
+	} else {
+	    if (opts.get('simulation')) {
+		t.cell('action', '[simulation] removed');
+	    } else {
+		fs.unlinkSync(mp4_file, function (err) {
+		    if (err) {
+			console.log('Failed to delete: ' + mp4_file);
+		    }
+		});
+
+		t.cell('action', 'removed');
+	    }
+	}
+	t.cell('Recorded', f);
+	t.newRow();
+    });
+	
+    console.log(t.print().trim());
+	
+    process.exit(0);
 }
 
 // IRC bot
