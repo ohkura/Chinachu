@@ -7,9 +7,12 @@
 			return;
 		
 		case 'POST':
-			if (request.headers['content-type'].match(/^application\/json/)) {
-				var newRule = request.query;
-				
+			var newRule = request.query;
+			if (request.headers['content-type'].match(/^application\/json/) === null) {
+				response.error(400);
+			} else if (JSON.stringify(newRule) === '{}') {
+				response.error(400);
+			} else {
 				if (newRule.isEnabled === false) {
 					newRule.isDisabled = true;
 				}
@@ -20,24 +23,6 @@
 				
 				response.head(201);
 				response.end(JSON.stringify(newRule));
-			} else {
-				var args = [];
-
-				for (var i in request.query) {
-					if (i === 'method') continue;
-					args.push('-' + i + ' ' + request.query[i]);
-				}
-
-				if (args.length === 0) {
-					return response.error(400);
-				}
-
-				child_process.exec('node app-cli.js -mode rule ' + args.join(' '), function(err, stdout, stderr) {
-					if (err) return response.error(500);
-
-					response.head(200);
-					response.end('{}');
-				});
 			}
 			return;
 	}

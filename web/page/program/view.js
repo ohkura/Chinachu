@@ -227,7 +227,7 @@ P = Class.create(P, {
 		this.view.content.update();
 		
 		var titleHtml = program.flags.invoke('sub', /.+/, '<span class="flag #{0}">#{0}</span>').join('') + program.title;
-		if (program.subTitle && program.title.match(program.subTitle) === null) {
+		if (program.subTitle && program.title.indexOf(program.subTitle) === -1) {
 			titleHtml += ' <span class="subtitle">' + program.subTitle + '</span>';
 		}
 		if (typeof program.episode !== 'undefined' && program.episode !== null) {
@@ -253,6 +253,13 @@ P = Class.create(P, {
 					title       : 'スキップ',
 					type        : 'blue',
 					body        : 'この番組は自動録画予約されましたがスキップするように設定されています',
+					disableClose: true
+				}).render(this.view.content);
+			} else if (program.isConflict) {
+				new sakura.ui.Alert({
+					title       : '競合',
+					type        : 'red',
+					body        : 'この番組は録画予約されていますが、競合のため録画されません',
 					disableClose: true
 				}).render(this.view.content);
 			} else {

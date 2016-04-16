@@ -1,13 +1,13 @@
 P = Class.create(P, {
-	
+
 	init: function() {
-		
+
 		this.view.content.className = 'loading';
-		
+
 		this.onNotify = this.refresh.bindAsEventListener(this);
 		document.observe('chinachu:recording', this.onNotify);
 		document.observe('chinachu:recorded', this.onNotify);
-		
+
 		if (!this.self.query.id) {
 			this.modal = new flagrate.Modal({
 				title: 'チャンネルが見つかりません',
@@ -24,29 +24,29 @@ P = Class.create(P, {
 			}).show();
 			return this;
 		}
-		
+
 		this.channelId = this.self.query.id;
-		
+
 		this.initToolbar();
 		this.draw();
-		
+
 		return this;
 	}
 	,
 	deinit: function() {
-		
+
 		if (this.modal) setTimeout(function() { this.modal.close(); }.bind(this), 0);
-		
+
 		document.stopObserving('chinachu:recording', this.onNotify);
 		document.stopObserving('chinachu:recorded', this.onNotify);
-		
+
 		return this;
 	}
 	,
 	refresh: function() {
-		
+
 		if (!this.isPlaying) this.app.pm.realizeHash(true);
-		
+
 		return this;
 	}
 	,
@@ -55,14 +55,14 @@ P = Class.create(P, {
 	}
 	,
 	draw: function() {
-		
+
 		//var program = this.program;
-		
+
 		this.view.content.className = 'bg-black';
 		this.view.content.update();
-		
+
 		var titleHtml = "ライブ視聴";
-		
+
 		setTimeout(function() {
 			this.view.title.update(titleHtml);
 		}.bind(this), 0);
@@ -78,19 +78,19 @@ P = Class.create(P, {
 					color  : '@pink',
 					onSelect: function(e, modal) {
 						if (this.form.validate() === false) { return; }
-						
+
 						var d = this.d = this.form.result();
-						
-						if ((d.ext === 'm2ts') && (!window.navigator.plugins['VLC Web Plugin'])) {
+
+						if (d.ext === 'm2ts') {
 							new flagrate.Modal({
 								title: 'エラー',
-								text : 'MPEG-2 TSコンテナの再生にはVLC Web Pluginが必要です。'
+								text : 'MPEG-2 TSコンテナの再生はサポートしていません。'
 							}).show();
 							return;
 						}
-						
+
 						modal.close();
-						
+
 						this.play();
 					}.bind(this)
 				},
@@ -99,20 +99,21 @@ P = Class.create(P, {
 					color  : '@orange',
 					onSelect: function(e, modal) {
 						if (this.form.validate() === false) { return; }
-						
+
 						var d = this.form.result();
-						
-						d.prefix = window.location.protocol + '//' + window.location.host + '/api/channel/' + this.channelId + '/';
+
+						d.prefix = window.location.protocol + '//' + window.location.host;
+						d.prefix += window.location.pathname.replace(/\/[^\/]*$/, '') + '/api/channel/' + this.channelId + '/';
 						window.open('./api/channel/' + this.channelId + '/watch.xspf?' + Object.toQueryString(d));
 					}.bind(this)
 				}
 			]
 		}).show();
-		
+
 		if (Prototype.Browser.MobileSafari) {
 			modal.buttons[1].disable();
 		}
-		
+
 		this.form = new Hyperform({
 			formWidth  : '100%',
 			labelWidth : '100px',
@@ -221,7 +222,7 @@ P = Class.create(P, {
 							},
 							{
 								label     : 'AAC',
-								value     : 'libfdk_aac'
+								value     : 'aac'
 							},
 							{
 								label     : 'Vorbis',
@@ -249,42 +250,6 @@ P = Class.create(P, {
 					},
 					depends: [
 						{ key: 'ext', value: 'webm' }
-					]
-				},
-				{
-					key  : 'c:a',
-					label: '音声コーデック',
-					input: {
-						type      : 'radio',
-						isRequired: true,
-						items     : [
-							{
-								label     : 'AAC',
-								value     : 'libfdk_aac',
-								isSelected: true
-							}
-						]
-					},
-					depends: [
-						{ key: 'ext', value: 'mp4' }
-					]
-				},
-				{
-					key  : 'c:a',
-					label: '音声コーデック',
-					input: {
-						type      : 'radio',
-						isRequired: true,
-						items     : [
-							{
-								label     : 'AAC',
-								value     : 'libfdk_aac',
-								isSelected: true
-							}
-						]
-					},
-					depends: [
-						{ key: 'ext', value: 'flv' }
 					]
 				},
 				{
@@ -399,104 +364,74 @@ P = Class.create(P, {
 				}
 			]
 		});
-		
+
 		if (!Prototype.Browser.MobileSafari) {
 			this.form.fields[0].input.items.push({
 				label     : 'M2TS',
 				value     : 'm2ts'
 			});
-			
+
+			this.form.fields[0].input.items.push({
+				label     : 'MP4',
+				value     : 'mp4'
+			});
+
 			this.form.fields[0].input.items.push({
 				label     : 'WebM',
 				value     : 'webm',
 				isSelected: true
 			});
-			
-			/* this.form.fields[0].input.items.push({
-				label     : 'FLV',
-				value     : 'flv'
-			}); */
 		}
-		
+
 		this.form.render(modal.content);
-		
+
 		return this;
 	},
 	play: function() {
 		this.isPlaying = true;
 		var d = this.d;
-		
+
 		d.ss = d.ss || 0;
-		
+
 		// if (p._isRecording) d.ss = '';
-		
+
 		var getRequestURI = function() {
-			
-			var r = window.location.protocol + '//' + window.location.host;
+
+			var r = window.location.protocol + '//' + window.location.host + window.location.pathname.replace(/\/[^\/]*$/, '');
 			r += '/api/channel/' + this.channelId + '/watch.' + d.ext;
 			var q = Object.toQueryString(d);
-			
+
 			return r + '?' + q;
 		}.bind(this);
-		
+
 		var togglePlay = function() {
-			if (d.ext === 'webm') {
-				if (video.paused) {
-					video.play();
-					control.getElementByKey('play').setLabel('Pause');
-				} else {
-					video.pause();
-					control.getElementByKey('play').setLabel('Play');
-				}
+			if (video.paused) {
+				video.play();
+				control.getElementByKey('play').setLabel('Pause');
 			} else {
-				if (vlc.playlist.isPlaying) {
-					vlc.playlist.pause();
-					control.getElementByKey('play').setLabel('Pause');
-				} else {
-					vlc.playlist.play();
-					control.getElementByKey('play').setLabel('Play');
-				}
+				video.pause();
+				control.getElementByKey('play').setLabel('Play');
 			}
 		};
-		
+
 		// create video view
-		
+
 		var videoContainer = new flagrate.Element('div', {
 			'class': 'video-container'
 		}).insertTo(this.view.content);
-		
-		if (d.ext === 'webm') {
-			var video = new flagrate.Element('video', {
-				src     : getRequestURI(),
-				autoplay: true
-			}).insertTo(videoContainer);
-			
-			video.addEventListener('click', togglePlay);
-			
-			//video.load();
-			video.volume = 1;
-		} else {
-			var vlc = flagrate.createElement('embed', {
-				type: 'application/x-vlc-plugin',
-				pluginspage: 'http://www.videolan.org',
-				width: '100%',
-				height: '100%',
-				target: getRequestURI(),
-				autoplay: 'true',
-				controls: 'false'
-			}).insertTo(videoContainer);
-			
-			flagrate.createElement('object', {
-				classid: 'clsid:9BE31822-FDAD-461B-AD51-BE1D1C159921',
-				codebase: 'http://download.videolan.org/pub/videolan/vlc/last/win32/axvlc.cab'
-			}).insertTo(videoContainer);
-			
-			vlc.audio.volume = 100;
-			vlc.currentTime = 0;
-		}
-		
+
+		var video = new flagrate.Element('video', {
+			src     : getRequestURI(),
+			autoplay: true
+		}).insertTo(videoContainer);
+
+		video.addEventListener('click', togglePlay);
+
+		//video.load();
+		video.volume = 1;
+
 		// create control view
-		
+
 		var control = new flagrate.Toolbar({
 			className: 'video-control',
 			items: [
@@ -511,16 +446,14 @@ P = Class.create(P, {
 				}
 			]
 		}).insertTo(this.view.content);
-		
+
 		control.getElementByKey('vol').addEventListener('slide', function() {
-			
+
 			var vol = control.getElementByKey('vol');
-			
-			if (d.ext === 'webm' || d.ext === 'm3u8') {
-				video.volume = vol.getValue() / 10;
-			}
+
+			video.volume = vol.getValue() / 10;
 		});
-		
+
 		return this;
 	}
 });

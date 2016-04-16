@@ -1,15 +1,15 @@
 P = Class.create(P, {
-	
+
 	init: function() {
-		
+
 		this.view.content.className = 'loading';
-		
+
 		this.program = chinachu.util.getProgramById(this.self.query.id);
-		
+
 		this.onNotify = this.refresh.bindAsEventListener(this);
 		document.observe('chinachu:recording', this.onNotify);
 		document.observe('chinachu:recorded', this.onNotify);
-		
+
 		if (this.program === null) {
 			this.modal = new flagrate.Modal({
 				title: '番組が見つかりません',
@@ -26,34 +26,34 @@ P = Class.create(P, {
 			}).show();
 			return this;
 		}
-		
+
 		this.initToolbar();
 		this.draw();
-		
+
 		return this;
 	}
 	,
 	deinit: function() {
-		
+
 		if (this.modal) setTimeout(function() { this.modal.close(); }.bind(this), 0);
-		
+
 		document.stopObserving('chinachu:recording', this.onNotify);
 		document.stopObserving('chinachu:recorded', this.onNotify);
-		
+
 		return this;
 	}
 	,
 	refresh: function() {
-		
+
 		if (!this.isPlaying) this.app.pm.realizeHash(true);
-		
+
 		return this;
 	}
 	,
 	initToolbar: function _initToolbar() {
-		
+
 		var program = this.program;
-		
+
 		this.view.toolbar.add({
 			key: 'streaming',
 			ui : new sakura.ui.Button({
@@ -64,78 +64,114 @@ P = Class.create(P, {
 				}
 			})
 		});
-		
+
 		return this;
 	}
 	,
 	draw: function() {
-		
+
 		var program = this.program;
-		
+
 		this.view.content.className = 'bg-black';
 		this.view.content.update();
-		
+
 		var titleHtml = program.flags.invoke('sub', /.+/, '<span class="flag #{0}">#{0}</span>').join('') + program.title;
 		if (typeof program.episode !== 'undefined' && program.episode !== null) {
 			titleHtml += '<span class="episode">#' + program.episode + '</span>';
 		}
 		titleHtml += '<span class="id">#' + program.id + '</span>';
-		
+
 		if (program.isManualReserved) {
 			titleHtml = '<span class="flag manual">手動</span>' + titleHtml;
 		}
-		
+
 		setTimeout(function() {
 			this.view.title.update(titleHtml);
 		}.bind(this), 0);
+
 		var saveSettings = function (d) {
 			localStorage.setItem('program.watch.settings', JSON.stringify(d));
 		};
-		
-		var set = JSON.parse(localStorage.getItem('program.watch.settings') || '{}');
-	
-		var buttons = [
-		    {
-			label  : '再生',
-			color  : '@pink',
-			onSelect: function(e, modal) {
-			    if (this.form.validate() === false) { return; }
-			    var d = this.d = this.form.result();
-			    saveSettings(d);
-						
-			    if ((d.ext === 'm2ts') && (!window.navigator.plugins['VLC Web Plugin'])) {
-				new flagrate.Modal({
-				    title: 'エラー',
-				    text : 'MPEG-2 TSコンテナの再生にはVLC Web Pluginが必要です。'
-				}).show();
-				return;
-			    }
-						
-			    modal.close();
-						
-			    this.play();
-			}.bind(this)
-		    },
-		    {
-			label  : 'XSPF',
-			color  : '@orange',
-			onSelect: function(e, modal) {
-			    if (this.form.validate() === false) { return; }
 
-			    var d = this.form.result();
-						
-			    saveSettings(d);
-						
-			    if (program._isRecording) {
-				d.prefix = window.location.protocol + '//' + window.location.host + '/api/recording/' + program.id + '/';
-				window.open('./api/recording/' + program.id + '/watch.xspf?' + Object.toQueryString(d));
-			    } else {
-				d.prefix = window.location.protocol + '//' + window.location.host + '/api/recorded/' + program.id + '/';
-				window.open('./api/recorded/' + program.id + '/watch.xspf?' + Object.toQueryString(d));
-			    }
-			}.bind(this)
-		    }
+		var set = JSON.parse(localStorage.getItem('program.watch.settings') || '{}');
+
+		if (!set.s) {
+			set.s = '1280x720';
+		}
+		if (!set.ext) {
+			set.ext = 'mp4';
+		}
+		if (!set['b:v']) {
+			set['b:v'] = '1M';
+		}
+		if (!set['b:a']) {
+			set['b:a'] = '96k';
+		}
+
+		var buttons = [
+			{
+				label  : '再生',
+				color  : '@pink',
+				onSelect: function(e, modal) {
+					if (this.form.validate() === false) { return; }
+
+					var d = this.d = this.form.result();
+
+					saveSettings(d);
+
+					if (d.ext === 'm2ts') {
+						new flagrate.Modal({
+							title: 'エラー',
+							text : 'MPEG-2 TSコンテナの再生はサポートしていません。'
+						}).show();
+						return;
+					}
+
+					modal.close();
+
+					this.play();
+				}.bind(this)
+			},
+			{
+				label  : 'XSPF',
+				color  : '@orange',
+				onSelect: function(e, modal) {
+					if (this.form.validate() === false) { return; }
+
+					var d = this.form.result();
+
+					saveSettings(d);
+
+					if (program._isRecording) {
+						d.prefix = window.location.protocol + '//' + window.location.host;
+						d.prefix += window.location.pathname.replace(/\/[^\/]*$/, '') + '/api/recording/' + program.id + '/';
+						window.open('./api/recording/' + program.id + '/watch.xspf?' + Object.toQueryString(d));
+					} else {
+						d.prefix = window.location.protocol + '//' + window.location.host;
+						d.prefix += window.location.pathname.replace(/\/[^\/]*$/, '') + '/api/recorded/' + program.id + '/';
+						window.open('./api/recorded/' + program.id + '/watch.xspf?' + Object.toQueryString(d));
+					}
+				}.bind(this)
+			}
 		];
+		if (! program._isRecording) {
+			buttons.push({
+				label: 'ダウンロード',
+				color: '@blue',
+				onSelect: function(e, model) {
+
+					if (this.form.validate() === false) { return; }
+
+					var d = this.form.result();
+
+					saveSettings(d);
+
+					d.prefix = window.location.protocol + '//' + window.location.host + '/api/recording/' + program.id + '/';
+					d.mode = 'download';
+					location.href = './api/recorded/' + program.id + '/watch.' + d.ext + '?' + Object.toQueryString(d);
+				}.bind(this)
+			});
+		}
 
 	        if (hasGoogleCast) {
 		    buttons.push(
@@ -159,13 +195,13 @@ P = Class.create(P, {
 			title : 'ストリーミング再生',
 			buttons: buttons
 		}).show();
-		
+
 		if (Prototype.Browser.MobileSafari) {
 			modal.buttons[1].disable();
 		}
-		
+
 		var exts = [];
-		
+
 		exts.push({
 			label     : 'M2TS',
 			value     : 'm2ts',
@@ -185,7 +221,7 @@ P = Class.create(P, {
 				isSelected: set.ext === 'webm'
 			});
 		}
-		
+
 		this.form = new Hyperform({
 			formWidth  : '100%',
 			labelWidth : '100px',
@@ -296,8 +332,8 @@ P = Class.create(P, {
 							},
 							{
 								label     : 'AAC',
-								value     : 'libfdk_aac',
-								isSelected: set['c:a'] === 'libfdk_aac'
+								value     : 'aac',
+								isSelected: set['c:a'] === 'aac'
 							},
 							{
 								label     : 'Vorbis',
@@ -475,32 +511,32 @@ P = Class.create(P, {
 				}
 			]
 		});
-		
+
 		this.form.render(modal.content);
-		
+
 		return this;
 	}
 	,
 	play: function() {
-		
+
 		this.isPlaying = true;
-		
+
 		var p = this.program;
 		var d = this.d;
-		
+
 		d.ss = d.ss || 0;
-		
+
 		if (p._isRecording) d.ss = '';
-		
+
 		var getRequestURI = function() {
-			
-			var r = window.location.protocol + '//' + window.location.host;
+
+			var r = window.location.protocol + '//' + window.location.host + window.location.pathname.replace(/\/[^\/]*$/, '');
 			r += '/api/' + (!!p._isRecording ? 'recording' : 'recorded') + '/' + p.id + '/watch.' + d.ext;
 			var q = Object.toQueryString(d);
-			
+
 			return r + '?' + q;
 		};
-		
+
 		var togglePlay = function() {
 			if (p._isRecording) return;
 			
@@ -514,19 +550,11 @@ P = Class.create(P, {
 					video.pause();
 					control.getElementByKey('play').setLabel('Play');
 				}
-			} else {
-				if (vlc.playlist.isPlaying) {
-					vlc.playlist.pause();
-					control.getElementByKey('play').setLabel('Play');
-				} else {
-					vlc.playlist.play();
-					control.getElementByKey('play').setLabel('Pause');
-				}
 			}
 		};
 
 		// create video view
-		
+
 		var videoContainer = new flagrate.Element('div', {
 			'class': 'video-container'
 		}).insertTo(this.view.content);
@@ -534,7 +562,7 @@ P = Class.create(P, {
 		if (d.use_gcast) {
 			console.log(getRequestURI());
 			start_gcast(getRequestURI(), p.title);
-		} else if (d.ext === 'webm' || d.ext === 'mp4') {
+		} else {
 			var video = new flagrate.Element('video', {
 				autoplay: true,
 				controls: true
@@ -550,28 +578,10 @@ P = Class.create(P, {
 			video.volume = 1;
 			
 			video.play();
-		} else {
-			var vlc = flagrate.createElement('embed', {
-				type: 'application/x-vlc-plugin',
-				pluginspage: 'http://www.videolan.org',
-				width: '100%',
-				height: '100%',
-				target: getRequestURI(),
-				autoplay: 'true',
-				controls: 'false'
-			}).insertTo(videoContainer);
-			
-			flagrate.createElement('object', {
-				classid: 'clsid:9BE31822-FDAD-461B-AD51-BE1D1C159921',
-				codebase: 'http://download.videolan.org/pub/videolan/vlc/last/win32/axvlc.cab'
-			}).insertTo(videoContainer);
-			
-			vlc.audio.volume = 100;
-			vlc.currentTime = 0;
 		}
 		
 		// create control view
-		
+
 		var control = new flagrate.Toolbar({
 			className: 'video-control',
 			items: [
@@ -615,21 +625,19 @@ P = Class.create(P, {
 
 		var seekSlideEvent = function() {
 			var value = seek.getValue();
-			
+
 			d.ss = value;
 			var uri = getRequestURI();
-			
+
 			seek.disable();
 			fastForward.disable();
 			fastRewind.disable();
 			
 			if (d.use_gcast) {
 				// hoge
-			} else if (d.ext === 'webm' || d.ext === 'mp4') {
+			} else {
 				video.src = uri;
 				video.play();
-			} else {
-				vlc.playlist.playItem(vlc.playlist.add(uri));
 			}
 			
 			setTimeout(function() {
@@ -657,77 +665,70 @@ P = Class.create(P, {
 			seekValue(-15);
 		});
 
-		
+
 		if (p._isRecording) {
 			seek.disable();
 			control.getElementByKey('play').updateText('Live');
 			control.getElementByKey('play').disable();
 		}
-		
+
 		control.getElementByKey('vol').addEventListener('slide', function() {
-			
+
 			var vol = control.getElementByKey('vol');
 
 			if (d.use_gcast) {
 				// hoge
-			} else if (d.ext === 'webm' || d.ext === 'mp4') {
-				video.volume = vol.getValue() / 10;
 			} else {
-				vlc.audio.volume = vol.getValue() * 10;
+				video.volume = vol.getValue() / 10;
 			}
 		});
-		
+
 		seek.addEventListener('slide', seekSlideEvent);
-		
+
 		var updateTime = function() {
-			
+
 			if (seek.isEnabled() === false) return;
-			
+
 			var current = 0;
 			
 			if (d.use_gcast) {
 				// hoge
-			} else if (d.ext === 'webm' || d.ext === 'mp4') {
-				current = video.currentTime;
 			} else {
-				if (vlc.playlist.isPlaying) {
-					vlc.currentTime += 250;
-				}
-				current = vlc.currentTime / 1000;
+				current = video.currentTime;
 			}
-			
+
 			current += d.ss;
-			
+
 			current = Math.floor(current);
-			
+
 			control.getElementByKey('played').updateText(
 				Math.floor(current / 60).toPaddedString(2) + ':' + (current % 60).toPaddedString(2)
 			);
 			seek.setValue(current);
 		};
-		
+
 		var updateLiveTime = function() {
-			
+
 			var current = (new Date().getTime() - p.start) / 1000;
-			
+
 			current = Math.floor(current);
-			
+
 			if (current > p.seconds) {
 				this.app.pm.realizeHash(true);
 			}
-			
+
 			control.getElementByKey('played').updateText(
 				Math.floor(current / 60).toPaddedString(2) + ':' + (current % 60).toPaddedString(2)
 			);
 			seek.setValue(current);
 		}.bind(this);
-		
+
 		if (p._isRecording) {
 			this.timer.updateLiveTime = setInterval(updateLiveTime, 250);
 		} else {
 			this.timer.updateTime = setInterval(updateTime, 250);
 		}
-		
+
 		return this;
 	}
 });

@@ -240,6 +240,13 @@ opts.parse([
 		description: 'nick',
 		value      : true,
 		required   : false
+	},
+	{
+		short      : '1seg',
+		long       : '1seg',
+		description: 'ワンセグ録画',
+		value      : false,
+		required   : false
 	}
 ].reverse(), true);
 
@@ -413,6 +420,10 @@ function chinachuReserve() {
 	}
 	
 	target.isManualReserved = true;
+	
+	if (opts.get('1seg')) {
+		target['1seg'] = true;
+	}
 	
 	reserves.push(target);
 	reserves.sort(function(a, b) {
@@ -763,6 +774,7 @@ function chinachuProgramList(target) {
 		if (opts.get('simple')) {
 			t.cell('Datetime', dateFormat(new Date(a.start), 'dd HH:MM'));
 		} else {
+			// TODO: isConflict を見る
 			t.cell('By', a.isManualReserved ? 'user' : 'rule');
 			t.cell('Datetime', dateFormat(new Date(a.start), 'yy/mm/dd HH:MM'));
 		}
@@ -1044,6 +1056,7 @@ function chinachuIrcbot() {
 // (function) rule checker
 function isMatchedProgram(program) {
 	var result = false;
+	var nf = config.normalizationForm;
 	
 	// -id, --id
 	if (opts.get('id') && (opts.get('id') === program.id)) {
@@ -1109,10 +1122,22 @@ function isMatchedProgram(program) {
 			if ((rule.duration.min > program.seconds) || (rule.duration.max < program.seconds)) return;
 		}
 		
+		var title_norm, detail_norm;
+		if (nf) {
+			title_norm = program.title.normalize(nf);
+			if (program.detail) {
+				detail_norm = program.detail.normalize(nf);
+			}
+		}
 		// ignore_titles
 		if (rule.ignore_titles) {
 			for (var i = 0; i < rule.ignore_titles.length; i++) {
-				if (program.title.match(rule.ignore_titles[i]) !== null) return;
+				if (nf) {
+					if (title_norm.match(new RegExp(rule.ignore_titles[i].normalize(nf))) !== null) return;
+				}
+				else {
+					if (program.title.match(new RegExp(rule.ignore_titles[i])) !== null) return;
+				}
 			}
 		}
 		
@@ -1121,7 +1146,12 @@ function isMatchedProgram(program) {
 			var isFound = false;
 			
 			for (var i = 0; i < rule.reserve_titles.length; i++) {
-				if (program.title.match(rule.reserve_titles[i]) !== null) isFound = true;
+				if (nf) {
+					if (title_norm.match(new RegExp(rule.reserve_titles[i].normalize(nf))) !== null) isFound = true;
+				}
+				else {
+					if (program.title.match(new RegExp(rule.reserve_titles[i])) !== null) isFound = true;
+				}
 			}
 			
 			if (!isFound) return;
@@ -1132,7 +1162,12 @@ function isMatchedProgram(program) {
 			if (!program.detail) return;
 			
 			for (var i = 0; i < rule.ignore_descriptions.length; i++) {
-				if (program.detail.match(rule.ignore_descriptions[i]) !== null) return;
+				if (nf) {
+					if (detail_norm.match(new RegExp(rule.ignore_descriptions[i].normalize(nf))) !== null) return;
+				}
+				else {
+					if (program.detail.match(new RegExp(rule.ignore_descriptions[i])) !== null) return;
+				}
 			}
 		}
 		
@@ -1143,7 +1178,12 @@ function isMatchedProgram(program) {
 			var isFound = false;
 			
 			for (var i = 0; i < rule.reserve_descriptions.length; i++) {
-				if (program.detail.match(rule.reserve_descriptions[i]) !== null) isFound = true;
+				if (nf) {
+					if (detail_norm.match(new RegExp(rule.reserve_descriptions[i].normalize(nf))) !== null) isFound = true;
+				}
+				else {
+					if (program.detail.match(new RegExp(rule.reserve_descriptions[i])) !== null) isFound = true;
+				}
 			}
 			
 			if (!isFound) return;

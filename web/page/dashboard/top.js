@@ -123,6 +123,24 @@
 							}).insert(program.channel.type + ': ' + program.channel.name)
 						);
 						
+						if (program._data._isRecording) {
+							if (!program._progress) {
+								var recordingProgressInterval = setInterval(function () {
+									if (program._progress.exists() === true) {
+										program._progress.setValue(Date.now() - program.start);
+									} else {
+										clearInterval(recordingProgressInterval);
+									}
+								}, 1000);
+							}
+							
+							program._progress = flagrate.createProgress({
+								max: program.end - program.start
+							});
+							
+							program._it.insert(program._progress);
+						}
+						
 						var html = flagrate.createElement('div').insert('<b>' + program.fullTitle + '</b><br>').insertText(program.detail || '(説明なし)');
 						
 						var contextMenuItems = [
@@ -208,6 +226,9 @@
 								}
 							});
 						} else if (program._data._isReserves) {
+							if (program.isConflict) {
+								program._it.entity.addClassName('conflict');
+							}
 							if (program.isManualReserved) {
 								contextMenuItems.unshift({
 									label   : '予約取消...',
@@ -310,20 +331,20 @@
 			});
 			
 			setTimeout(function () {
-				this.view.reservesTl = new Timelist({
-					name       : 'RESERVES'.__(),
-					initialList: global.chinachu.reserves,
-					notify     : 'chinachu:reserves',
-					className  : 'reserves'
-				}).render(this.view.content);
-			}.bind(this), 30);
-			
-			setTimeout(function () {
 				this.view.recordingTl = new Timelist({
 					name       : 'RECORDING'.__(),
 					initialList: global.chinachu.recording,
 					notify     : 'chinachu:recording',
 					className  : 'recording'
+				}).render(this.view.content);
+			}.bind(this), 30);
+			
+			setTimeout(function () {
+				this.view.reservesTl = new Timelist({
+					name       : 'RESERVES'.__(),
+					initialList: global.chinachu.reserves,
+					notify     : 'chinachu:reserves',
+					className  : 'reserves'
 				}).render(this.view.content);
 			}.bind(this), 40);
 			

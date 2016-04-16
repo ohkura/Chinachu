@@ -578,10 +578,17 @@
 								onComplete: function () {
 									modal.close();
 								},
-								onSuccess: function () {
+								onSuccess: function (response) {
+									var json = response.responseJSON;
+									var conflictMsg = '';
+									var title = '成功';
+									if (Array.isArray(json.conflicts) && json.conflicts.length > 0) {
+										conflictMsg = '。競合が' + json.conflicts.length + '件ありました';
+										title = '競合検出';
+									}
 									new flagrate.Modal({
-										title: '成功',
-										text : 'スケジューラーを実行しました'
+										title: title,
+										text : 'スケジューラーを実行しました' + conflictMsg
 									}).show();
 								},
 								onFailure: function (t) {
@@ -623,44 +630,79 @@
 					text : '番組が見つかりませんでした'
 				});
 			} else {
+				var buttons = [];
+				
+				buttons.push({
+					label   : '予約',
+					color   : '@red',
+					onSelect: function (e, modal) {
+						e.targetButton.disable();
+
+						var dummy = new Ajax.Request('./api/program/' + this.program.id + '.json', {
+							method    : 'put',
+							onComplete: function () {
+								modal.close();
+							},
+							onSuccess: function () {
+								new flagrate.Modal({
+									title: '成功',
+									text : '予約しました。競合を確認するためスケジューラを実行することをお勧めします'
+								}).show();
+							},
+							onFailure: function (t) {
+								new flagrate.Modal({
+									title: '失敗',
+									text : '予約に失敗しました (' + t.status + ')'
+								}).show();
+							}
+						});
+					}.bind(this)
+				});
+				
+				if (this.program.channel.type === 'GR') {
+					buttons.push({
+						label   : '予約 (ワンセグ)',
+						color   : '@red',
+						onSelect: function (e, modal) {
+							e.targetButton.disable();
+
+							var dummy = new Ajax.Request('./api/program/' + this.program.id + '.json', {
+								method    : 'put',
+								parameters: {
+									mode: '1seg'
+								},
+								onComplete: function () {
+									modal.close();
+								},
+								onSuccess: function () {
+									new flagrate.Modal({
+										title: '成功',
+										text : '予約しました。スケジューラーを実行して競合を確認することをお勧めします'
+									}).show();
+								},
+								onFailure: function (t) {
+									new flagrate.Modal({
+										title: '失敗',
+										text : '予約に失敗しました (' + t.status + ')'
+									}).show();
+								}
+							});
+						}.bind(this)
+					});
+				}
+				
+				buttons.push({
+					label   : 'キャンセル',
+					onSelect: function (e, modal) {
+						modal.close();
+					}
+				});
+				
 				this.modal = new flagrate.Modal({
 					title   : '手動予約',
 					subtitle: this.program.title + ' #' + this.program.id,
 					text    : '予約しますか？',
-					buttons: [
-						{
-							label   : '予約',
-							color   : '@red',
-							onSelect: function (e, modal) {
-								e.targetButton.disable();
-								
-								var dummy = new Ajax.Request('./api/program/' + this.program.id + '.json', {
-									method    : 'put',
-									onComplete: function () {
-										modal.close();
-									},
-									onSuccess: function () {
-										new flagrate.Modal({
-											title: '成功',
-											text : '予約しました'
-										}).show();
-									},
-									onFailure: function (t) {
-										new flagrate.Modal({
-											title: '失敗',
-											text : '予約に失敗しました (' + t.status + ')'
-										}).show();
-									}
-								});
-							}.bind(this)
-						},
-						{
-							label   : 'キャンセル',
-							onSelect: function (e, modal) {
-								modal.close();
-							}
-						}
-					]
+					buttons : buttons
 				});
 			}
 			
@@ -704,7 +746,7 @@
 									onSuccess: function () {
 										new flagrate.Modal({
 											title: '成功',
-											text : '予約を取り消しました'
+											text : '予約を取り消しました。競合を解決するにはスケジューラを実行する必要があります'
 										}).show();
 									},
 									onFailure: function (t) {
@@ -766,7 +808,7 @@
 									onSuccess: function () {
 										new flagrate.Modal({
 											title: '成功',
-											text : 'スキップを有効にしました'
+											text : 'スキップを有効にしました。競合を解決するにはスケジューラを実行する必要があります'
 										}).show();
 									},
 									onFailure: function (t) {
@@ -828,7 +870,7 @@
 									onSuccess: function () {
 										new flagrate.Modal({
 											title: '成功',
-											text : 'スキップを取り消しました'
+											text : 'スキップを取り消しました。スケジューラーを実行して競合を確認することをお勧めします'
 										}).show();
 									},
 									onFailure: function (t) {
