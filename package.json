@@ -35,7 +35,7 @@
     "socket.io": "~0.9.16",
     "string": "~1.5.1",
     "hoard": "~0.1.5",
-    "podcast": "0.1.0"
+    "podcast": "0.1.0",
     "swagger-client": "github:kanreisa/swagger-js#feature/unix-domain-socket",
     "xml2js": "~0.2.8"
   },

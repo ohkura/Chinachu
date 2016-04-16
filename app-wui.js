@@ -678,7 +678,7 @@ function httpServerMain(req, res, query) {
  	  process.nextTick(responseApi);
 	} else if (req.url.match(/^\/api\/.*$/) === null) {
 	  if (/^web\//.test(filename) === false) { return resErr(400); }
-	} else if (fs.existsSync(filename) === false) { return resErr(404); }
+	  if (fs.existsSync(filename) === false) { return resErr(404); }
 		responseStatic();
 	} else {
 		responseApi();
