@@ -219,23 +219,34 @@ function startScheduler(channel) {
 }
 
 function checkEncoding() {
+	util.log('checkEncoding');
 	if (encoding.length == 0 || encodeRunning) {
+	        util.log('request not found or encode already running');
 		return;
 	}
 
+	util.log('encoding id: ' + encoding[0]);
+        var found = false;
 	for (var i = 0, l = recorded.length; i < l; i++) {
 		if (recorded[i].id == encoding[0]) {
 			encodeProgram(recorded[i]);
+			found = true;
 		}
+	}
+	if (!found) {
+	    util.log('encoding id: ' + encoding[0] + ' not found.  removing from the queue.');
+	    encoding.shift();
+	    fs.writeFileSync(ENCODING_DATA_FILE, JSON.stringify(encoding));
 	}
 }
 
 function encodeProgram(program) {
-	encodeRunning = true;
-
+	util.log('encodeProgram');
 	if (!config.mp4ConversionCommand) {
 		return;
 	}
+
+	encodeRunning = true;
 
 	var mp4Path = config.mp4Dir + chinachu.formatRecordedName(program, config.mp4Format);
 	var mp4_created = function (code) {
@@ -595,8 +606,19 @@ chinachu.jsonWatcher(
 			util.error(err);
 			return;
 		}
-		
+
+		var added = false;
+		var i;
+		for (i = 0; i < encoding.length; i++) {
+		    if (data.indexOf(encoding[i]) == -1) {
+			data.push(encoding[i]);
+			added = true;
+		    }
+		}
 		encoding = data;
+		if (added) {
+		    fs.writeFileSync(ENCODING_DATA_FILE, JSON.stringify(encoding));
+		}
 		util.log(mes);
 		encodingChecked = 0;
 	},
