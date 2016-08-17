@@ -213,10 +213,12 @@
 		}
 		
 		for (i = 0, l = global.chinachu.recording.length; i < l; i++) {
-			if ((global.chinachu.recording[i].id === id) && (global.chinachu.recording[i].pid)) {
-				global.chinachu.recording[i]._isRecording = true;
-				return global.chinachu.recording[i];
-			}
+		  if ((global.chinachu.recording[i].id === id)) {
+		      if (global.chinachu.recording[i].pid) {
+			global.chinachu.recording[i]._isRecording = true;
+		      }
+		    return global.chinachu.recording[i];
+		  }
 		}
 		
 		for (i = 0, l = global.chinachu.reserves.length; i < l; i++) {
