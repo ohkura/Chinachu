@@ -231,7 +231,6 @@ function main(avinfo) {
 
 			args.push('-y', '-f', d.f, 'pipe:1');
 
-<<<<<<< HEAD
 			var filename = program.recorded;
 			if (request.type == 'mp4') {
 				filename = program.mp4;
@@ -239,10 +238,6 @@ function main(avinfo) {
 
 			var readStream = fs.createReadStream(filename, range || {});
 			
-=======
-			var readStream = fs.createReadStream(program.recorded, range || {});
-
->>>>>>> upstream/master
 			request.on('close', function() {
 				readStream.destroy();
 			});
