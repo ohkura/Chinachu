@@ -207,9 +207,11 @@ function scheduler() {
 	var matches = [];
 	
 	schedule.forEach(function (ch) {
-m		ch.programs.forEach(function (p) {
-			matches.push(chinachu.isMatchedProgram(rules, p, config.normalizationForm));
-			}
+		ch.programs.forEach(function (p) {
+		  var matched_program = chinachu.isMatchedProgram(rules, p, config.normalizationForm);
+		  if (matched_program) {
+		    matches.push(matched_program);
+		  }
 		});
 	});
 	
@@ -1023,6 +1025,7 @@ function getEpg() {
 				};
 			
 				// 終了シグナル時処理
+				process.setMaxListeners(20);
 				process.on('exit', onCancel);
 			
 				recProc.once('exit', function () {
