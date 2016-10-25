@@ -225,9 +225,7 @@ function startScheduler(channel) {
 }
 
 function checkEncoding() {
-	util.log('checkEncoding');
 	if (encoding.length == 0 || encodeRunning) {
-	        util.log('request not found or encode already running');
 		return;
 	}
 
