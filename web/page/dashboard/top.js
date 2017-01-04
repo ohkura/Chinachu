@@ -94,7 +94,10 @@
 							throw $break;
 						}
 						
-						program._data = chinachu.util.getProgramById(program.id);
+					  program._data = chinachu.util.getProgramById(program.id);
+					  if (program._data == null) {
+					    throw "no data for " + program.id
+					  }
 						
 						program._dt = new chinachu.ui.DynamicTime({
 							tagName: 'span',
