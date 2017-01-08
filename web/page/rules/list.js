@@ -297,7 +297,7 @@ P = Class.create(P, {
 				row.cell.types = {
 					sortKey  : rule.types[0],
 					className: 'types',
-					html     : rule.types.invoke('sub', /^(.{1}).*$/, '<span class="#{0}">#{1}</span>').join('')
+					html     : rule.types.invoke('sub', /^(.{1}).*$/, '<span class="label-type-#{0}">#{1}</span>').join('')
 				};
 			} else {
 				row.cell.types = {
@@ -311,7 +311,7 @@ P = Class.create(P, {
 				row.cell.categories = {
 					sortKey    : rule.categories[0],
 					className  : 'categories',
-					html       : rule.categories.invoke('sub', /.+/, '<span class="bg-cat-#{0}">#{0}</span>').join(''),
+					html       : rule.categories.invoke('sub', /.+/, '<span class="label-cat-#{0}">#{0}</span>').join(''),
 					attribute  : { title: rule.categories.join(', ').truncate(256) }
 				};
 			} else {

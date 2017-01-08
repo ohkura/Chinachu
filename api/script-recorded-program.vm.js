@@ -24,6 +24,10 @@
 			return;
 
 		case 'DELETE':
+			if (fs.existsSync(program.recorded)) {
+				fs.unlinkSync(program.recorded);
+			}
+
 			data.recorded = (function() {
 				var array = [];
 

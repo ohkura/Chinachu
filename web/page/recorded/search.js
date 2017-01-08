@@ -87,8 +87,6 @@ P = Class.create(P, {
 		this.view.content.className = '';
 		this.view.content.update();
 
-
-
 		this.grid = new flagrate.Grid({
 			multiSelect  : true,
 			disableSelect: false,
@@ -103,20 +101,19 @@ P = Class.create(P, {
 					disableResize: true
 				},
 				{
-					key  : 'category',
-					label: 'ジャンル',
-					width: 70,
-					align: 'center'
-				},
-				{
 					key  : 'channel',
-					label: 'ch',
+					label: 'チャンネル',
 					width: 140
 				},
 				{
+					key  : 'category',
+					label: 'ジャンル',
+					width: 70,
+					align: 'center',
+				},
+				{
 					key  : 'title',
-					label: 'タイトル',
-					width: 500
+					label: 'タイトル'
 				},
 				{
 					key  : 'datetime',
@@ -126,8 +123,7 @@ P = Class.create(P, {
 				{
 					key  : 'duration',
 					label: '長さ',
-					width: 50,
-					align: 'center'
+					width: 60
 				}
 			],
 			onDblClick: function(e, row) {
@@ -172,10 +168,10 @@ P = Class.create(P, {
 		for (var i = 0, l = global.chinachu.recorded.length; i < l; i++) {
 			program = global.chinachu.recorded[i];
 
-			if (this.self.query.pgid && this.self.query.pgid !== program.id) continue; 
-			if (this.self.query.chid && this.self.query.chid !== program.channel.id) continue; 
-			if (this.self.query.cat && this.self.query.cat !== program.category) continue; 
-			if (this.self.query.type && this.self.query.type !== program.channel.type) continue; 
+			if (this.self.query.pgid && this.self.query.pgid !== program.id) continue;
+			if (this.self.query.chid && this.self.query.chid !== program.channel.id) continue;
+			if (this.self.query.cat && this.self.query.cat !== program.category) continue;
+			if (this.self.query.type && this.self.query.type !== program.channel.type) continue;
 			if (nf) {
 				if (this.self.query.title && program.title.normalize(nf).match(query_title_norm) === null) continue;
 				if (this.self.query.desc && (!program.detail || program.detail.normalize(nf).match(query_desc_norm) === null)) continue;
@@ -228,21 +224,6 @@ P = Class.create(P, {
 							new chinachu.ui.ClearKeepDays(program.id);
 						}
 					},
-					{
-						label   : '録画履歴の削除...',
-						icon    : './icons/eraser.png',
-						onSelect: function() {
-							new chinachu.ui.RemoveRecordedProgram(program.id);
-						}
-					},
-					{
-						label   : '録画ファイルの削除...',
-						icon    : './icons/cross-script.png',
-						onSelect: function() {
-							new chinachu.ui.RemoveRecordedFile(program.id);
-						}
-					},
-					'------------------------------------------',
 					{
 						label   : 'ルール作成...',
 						icon    : './icons/regular-expression.png',
@@ -318,13 +299,13 @@ P = Class.create(P, {
 			row.cell.type = {
 				sortAlt  : program.channel.type,
 				className: 'types',
-				html     : '<span class="' + program.channel.type + '">' + program.channel.type + '</span>'
+				html     : '<span class="label-type-' + program.channel.type + '">' + program.channel.type + '</span>'
 			};
 
 			row.cell.category = {
 				sortAlt    : program.category,
 				className  : 'categories',
-				html       : '<span class="bg-cat-' + program.category + '">' + program.category + '</span>'
+				html       : '<span class="label-cat-' + program.category + '">' + program.category + '</span>'
 			};
 
 			row.cell.channel = {
@@ -368,7 +349,7 @@ P = Class.create(P, {
 	}
 	,
 	viewSearchModal: function() {
-		console.log('hello');
+
 		var modal = new flagrate.Modal({
 			title  : '録画番組検索',
 			buttons: [

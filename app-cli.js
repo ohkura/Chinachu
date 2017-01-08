@@ -257,7 +257,6 @@ var schedule  = JSON.parse( fs.readFileSync(SCHEDULE_DATA_FILE,  { encoding: 'ut
 var reserves  = JSON.parse( fs.readFileSync(RESERVES_DATA_FILE,  { encoding: 'utf8' }) || '[]' );
 var recording = JSON.parse( fs.readFileSync(RECORDING_DATA_FILE, { encoding: 'utf8' }) || '[]' );
 var recorded  = JSON.parse( fs.readFileSync(RECORDED_DATA_FILE,  { encoding: 'utf8' }) || '[]' );
-var channels  = JSON.parse( JSON.stringify(config.channels) );
 
 var clock     = new Date().getTime();
 
@@ -567,6 +566,8 @@ function chinachuStop() {
 		process.exit(1);
 	}
 
+	target.abort = true;
+
 	if (opts.get('simulation')) {
 		console.log('[simulation] stop:');
 		console.log(JSON.stringify(target, null, '  '));
@@ -574,7 +575,15 @@ function chinachuStop() {
 		console.log('stop:');
 		console.log(JSON.stringify(target, null, '  '));
 
-		process.kill(target.pid, 'SIGTERM');
+		if (!target.isManualReserved) {
+			const rp  = chinachu.getProgramById(target.id, reserves);
+			if (rp) {
+				rp.isSkip = true;
+				fs.writeFileSync(RESERVES_DATA_FILE, JSON.stringify(reserves));
+			}
+		}
+
+		fs.writeFileSync(RECORDING_DATA_FILE, JSON.stringify(recording));
 
 		console.log('録画を停止しました。 ');
 	}

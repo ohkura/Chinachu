@@ -1,6 +1,7 @@
 P = Class.create(P, {
 
 	init: function() {
+
 		this.view.content.className = 'loading';
 
 		this.initToolbar();
@@ -34,9 +35,9 @@ P = Class.create(P, {
 				label  : '{0}'.__('ENABLE MUTLI SELECTION'.__()),
 				icon   : './icons/eraser.png',
 				onClick: function() {
-					this.grid.multiSelect = true;
-					this.grid.disableSelect = false;
-					this.refresh();
+				    this.grid.multiSelect = true;
+				    this.grid.disableSelect = false;
+				    this.refresh();
 				}.bind(this)
 			})
 		});
@@ -114,8 +115,8 @@ P = Class.create(P, {
 		this.view.content.update();
 
 		this.grid = new flagrate.Grid({
-			multiSelect  : false,
-			disableSelect: true,
+			multiSelect  : true,
+			disableSelect: false,
 			pagination   : true,
 			fill         : true,
 			cols: [
@@ -127,20 +128,19 @@ P = Class.create(P, {
 					disableResize: true
 				},
 				{
-					key  : 'category',
-					label: 'ジャンル',
-					width: 70,
-					align: 'center'
-				},
-				{
 					key  : 'channel',
-					label: 'ch',
+					label: 'チャンネル',
 					width: 140
 				},
 				{
+					key  : 'category',
+					label: 'ジャンル',
+					width: 70,
+					align: 'center',
+				},
+				{
 					key  : 'title',
-					label: 'タイトル',
-					width: 500
+					label: 'タイトル'
 				},
 				{
 					key  : 'datetime',
@@ -150,8 +150,7 @@ P = Class.create(P, {
 				{
 					key  : 'duration',
 					label: '長さ',
-					width: 50,
-					align: 'center'
+					width: 60
 				},
 				{
 					key  : 'remove_in',
@@ -160,24 +159,16 @@ P = Class.create(P, {
 				}
 			],
 			onClick: function(e, row) {
-				if (this.disableSelect) {
-					window.location.href = '#!/program/view/id=' + row.data.id + '/';
-				}
-			},
-			onDblClick: function(e, row) {
-				if (!this.disableSelect) {
-					window.location.href = '#!/program/view/id=' + row.data.id + '/';
-				}
 				window.location.href = '#!/program/view/id=' + row.data.id + '/';
 			},
 			onRendered: function() {
-				this.app.pm._lastHash = '!/recorded/list/page=' + this.grid.pagePosition + '/';
+				this.app.pm._lastHash = '!/recorded/list/page=' + this.grid._pagePosition + '/';
 				history.replaceState(null, null, '#' + this.app.pm._lastHash);
 			}.bind(this)
 		}).insertTo(this.view.content);
 
 		if (this.self.query.page) {
-			this.grid.pagePosition = parseInt(this.self.query.page, 10);
+			this.grid._pagePosition = parseInt(this.self.query.page, 10);
 		}
 
 		this.drawMain();
@@ -218,17 +209,10 @@ P = Class.create(P, {
 						}
 					},
 					{
-						label   : '録画履歴の削除...',
-						icon    : './icons/eraser.png',
-						onSelect: function() {
-							new chinachu.ui.RemoveRecordedProgram(program.id);
-						}
-					},
-					{
-						label   : '録画ファイルの削除...',
+						label   : '削除...',
 						icon    : './icons/cross-script.png',
 						onSelect: function() {
-							new chinachu.ui.RemoveRecordedFile(program.id);
+							new chinachu.ui.RemoveRecordedProgram(program.id);
 						}
 					},
 					'------------------------------------------',
@@ -307,13 +291,13 @@ P = Class.create(P, {
 			row.cell.type = {
 				sortAlt  : program.channel.type,
 				className: 'types',
-				html     : '<span class="' + program.channel.type + '">' + program.channel.type + '</span>'
+				html     : '<span class="label-type-' + program.channel.type + '">' + program.channel.type + '</span>'
 			};
 
 			row.cell.category = {
 				sortAlt    : program.category,
 				className  : 'categories',
-				html       : '<span class="bg-cat-' + program.category + '">' + program.category + '</span>'
+				html       : '<span class="label-cat-' + program.category + '">' + program.category + '</span>'
 			};
 
 			row.cell.channel = {
@@ -336,9 +320,9 @@ P = Class.create(P, {
 			if (program.isManualReserved) {
 				titleHtml = '<span class="flag manual">手動</span>' + titleHtml;
 			}
-      if (program.mp4) {
-        titleHtml = '<span class="flag manual">MP4</span>' + titleHtml;
-      }
+			if (program.mp4) {
+				titleHtml = '<span class="flag manual">MP4</span>' + titleHtml;
+			}
 
 			row.cell.title = {
 				sortAlt    : program.title + (program.episode || 0).toString(36),
@@ -355,11 +339,7 @@ P = Class.create(P, {
 
 			row.cell.datetime = {
 				sortAlt    : program.start,
-				element    : new chinachu.ui.DynamicTime({
-					tagName : 'div',
-					type    : 'full',
-					time    : program.start,
-				}).entity
+				text       : chinachu.dateToString(new Date(program.start))
 			};
 
 			if (program.keep_days) {
@@ -367,11 +347,7 @@ P = Class.create(P, {
 				var remove_at = program.start + length_in_seconds;
 				row.cell.remove_in = {
 					sortAlt    : remove_at,
-					element    : new chinachu.ui.DynamicTime({
-						tagName: 'div',
-						type   : 'delta',
-						time   : remove_at
-					}).entity
+					text       : chinachu.dateToString(new Date(remove_at))
 				}
 			} else {
 				row.cell.remove_in = {

@@ -11,14 +11,11 @@ function init() {
 
 	if (program.tuner && program.tuner.isScrambling) return response.error(409);
 
-	var filename = program.recorded;
-	if (request.query.ext == "mp4") {
-		filename = program.mp4;
-	}
-	if (!fs.existsSync(filename)) return response.error(410);
+	if (!fs.existsSync(program.recorded)) return response.error(410);
 
 	// probing
-	child_process.exec('avprobe -v 0 -show_format -of json "' + filename + '"', function (err, std) {
+	child_process.exec('ffprobe -v 0 -show_format -of json "' + program.recorded + '"', function (err, std) {
+
 		if (err) {
 			return response.error(500);
 		}
@@ -134,54 +131,49 @@ function main(avinfo) {
 			}
 
 			// Ranges Support
-			var range = {};
-			if (request.type === 'mp4') {
-				range.start = parseInt(ibitrate / 8 * (parseInt(d.ss, 10) - 2), 10);
+			var range = {
+				start: parseInt(ibitrate / 8 * (parseInt(d.ss, 10) - 2), 10)
+			};
 
-				response.setHeader('Content-Length', tsize);
+			if (request.type === 'm2ts') {
+				if (request.headers.range) {
+					var bytes = request.headers.range.replace(/bytes=/, '').split('-');
+					var rStart = parseInt(bytes[0], 10);
+					var rEnd   = parseInt(bytes[1], 10) || tsize - 2;
 
-				response.head(200);
-			} else if (d.ss !== '2') {
-				range.start = parseInt(ibitrate / 8 * (parseInt(d.ss, 10) - 2), 10);
+					range.start = Math.round(rStart / bitrate * ibitrate);
+					range.end   = Math.round(rEnd / bitrate * ibitrate);
+					if (range.start > isize || range.end > isize) {
+						return response.error(416);
+					}
 
-				response.setHeader('Content-Length', tsize);
+					response.setHeader('Content-Range', 'bytes ' + rStart + '-' + rEnd + '/' + tsize);
+					response.setHeader('Content-Length', rEnd - rStart + 1);
 
-				response.head(200);
-			} else if (request.headers.range) {
-				var bytes = request.headers.range.replace(/bytes=/, '').split('-');
-				var rStart = parseInt(bytes[0], 10);
-				var rEnd   = parseInt(bytes[1], 10) || tsize - 2;
+					response.head(206);
+				} else {
+					response.setHeader('Accept-Ranges', 'bytes');
+					response.setHeader('Content-Length', tsize);
 
-				range.start = Math.round(rStart / bitrate * ibitrate);
-				range.end   = Math.round(rEnd / bitrate * ibitrate);
-				if (range.start > isize || range.end > isize) {
-					return response.error(416);
+					response.head(200);
 				}
-
-				response.setHeader('Content-Range', 'bytes ' + rStart + '-' + rEnd + '/' + tsize);
-				response.setHeader('Content-Length', rEnd - rStart + 1);
-
-				response.head(206);
 			} else {
-				response.setHeader('Accept-Ranges', 'bytes');
-				response.setHeader('Content-Length', tsize);
-
 				response.head(200);
 			}
 
 			switch (request.type) {
 				case 'm2ts':
-					d.f      = 'mpegts';
+					d.f = 'mpegts';
 					break;
 				case 'mp4':
-					d.f      = 'mp4';
-					d['c:v'] = d['c:v'] || 'libx264';
+					d.f = 'mp4';
+					d['c:v'] = d['c:v'] || 'h264';
 					d['c:a'] = d['c:a'] || 'aac';
 					break;
 				case 'webm':
-					d.f      = 'webm';
-					d['c:v'] = d['c:v'] || 'libvpx';
-					d['c:a'] = d['c:a'] || 'libvorbis';
+					d.f = 'webm';
+					d['c:v'] = d['c:v'] || 'vp9';
+					d['c:a'] = null;
 					break;
 			}
 
@@ -191,11 +183,9 @@ function main(avinfo) {
 
 			args.push('-i', 'pipe:0');
 
-			args.push('-ss', '2');
-
 			if (d.t) { args.push('-t', d.t); }
 
-			args.push('-threads', 'auto');
+			args.push('-threads', '0');
 
 			if (d['c:v']) args.push('-c:v', d['c:v']);
 			if (d['c:a']) args.push('-c:a', d['c:a']);
@@ -215,14 +205,15 @@ function main(avinfo) {
 				args.push('-bufsize:a', audioBitrate * 8);
 			}
 
-			if (d['c:v'] === 'libx264') {
+			if (d['c:v'] === 'h264') {
 				args.push('-profile:v', 'baseline');
 				args.push('-preset', 'ultrafast');
 				args.push('-tune', 'fastdecode,zerolatency');
 			}
-			if (d['c:v'] === 'libvpx') {
+			if (d['c:v'] === 'vp9') {
 				args.push('-deadline', 'realtime');
-				args.push('-cpu-used', '-16');
+				args.push('-speed', '4');
+				args.push('-cpu-used', '-8');
 			}
 
 			if (d.f === 'mp4') {
@@ -231,12 +222,7 @@ function main(avinfo) {
 
 			args.push('-y', '-f', d.f, 'pipe:1');
 
-			var filename = program.recorded;
-			if (request.type == 'mp4') {
-				filename = program.mp4;
-			}
-
-			var readStream = fs.createReadStream(filename, range || {});
+			var readStream = fs.createReadStream(program.recorded, range || {});
 
 			request.on('close', function() {
 				readStream.destroy();

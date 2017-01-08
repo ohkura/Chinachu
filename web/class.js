@@ -213,12 +213,10 @@
 		}
 
 		for (i = 0, l = global.chinachu.recording.length; i < l; i++) {
-		  if ((global.chinachu.recording[i].id === id)) {
-		      if (global.chinachu.recording[i].pid) {
-			global.chinachu.recording[i]._isRecording = true;
-		      }
-		    return global.chinachu.recording[i];
-		  }
+			if ((global.chinachu.recording[i].id === id) && (global.chinachu.recording[i].pid)) {
+				global.chinachu.recording[i]._isRecording = true;
+				return global.chinachu.recording[i];
+			}
 		}
 
 		for (i = 0, l = global.chinachu.reserves.length; i < l; i++) {
@@ -506,7 +504,14 @@
 
 			var wait = 1;
 
-			this.entity = this.entity || new Element(this.tagName, this.attr);
+			if (this.entity) {
+				if (flagrate.Element.exists(this.entity) === false) {
+					this.remove();
+					return;
+				}
+			} else {
+				this.entity = new Element(this.tagName, this.attr);
+			}
 
 			if (this.id !== null) { this.entity.id = this.id; }
 
@@ -648,7 +653,7 @@
 							onSuccess: function () {
 								new flagrate.Modal({
 									title: '成功',
-									text : '予約しました。競合を確認するためスケジューラを実行することをお勧めします'
+									text : '予約しました。'
 								}).show();
 							},
 							onFailure: function (t) {
@@ -661,7 +666,7 @@
 					}.bind(this)
 				});
 
-				if (this.program.channel.type === 'GR') {
+				if (false && this.program.channel.type === 'GR') {
 					buttons.push({
 						label   : '予約 (ワンセグ)',
 						color   : '@red',
@@ -679,7 +684,7 @@
 								onSuccess: function () {
 									new flagrate.Modal({
 										title: '成功',
-										text : '予約しました。スケジューラーを実行して競合を確認することをお勧めします'
+										text : '予約しました。'
 									}).show();
 								},
 								onFailure: function (t) {
@@ -700,10 +705,20 @@
 					}
 				});
 
+				var bitrate = 0;
+				if (this.program.channel.type === "GR") {
+					bitrate = 16.851;
+				} else if (this.program.channel.type === "SKY") {
+					bitrate = 8;
+				} else {
+					bitrate = 24;
+				}
+				var size = Math.round(this.program.seconds * bitrate / 8);
+
 				this.modal = new flagrate.Modal({
 					title   : '手動予約',
 					subtitle: this.program.title + ' #' + this.program.id,
-					text    : '予約しますか？',
+					text    : '予約しますか？ (目安容量: ' + size + ' MB)',
 					buttons : buttons
 				});
 			}
@@ -748,7 +763,7 @@
 									onSuccess: function () {
 										new flagrate.Modal({
 											title: '成功',
-											text : '予約を取り消しました。競合を解決するにはスケジューラを実行する必要があります'
+											text : '予約を取り消しました。'
 										}).show();
 									},
 									onFailure: function (t) {
@@ -810,7 +825,7 @@
 									onSuccess: function () {
 										new flagrate.Modal({
 											title: '成功',
-											text : 'スキップを有効にしました。競合を解決するにはスケジューラを実行する必要があります'
+											text : 'スキップを有効にしました。'
 										}).show();
 									},
 									onFailure: function (t) {
@@ -872,7 +887,7 @@
 									onSuccess: function () {
 										new flagrate.Modal({
 											title: '成功',
-											text : 'スキップを取り消しました。スケジューラーを実行して競合を確認することをお勧めします'
+											text : 'スキップを取り消しました。'
 										}).show();
 									},
 									onFailure: function (t) {
@@ -1042,9 +1057,9 @@
 				});
 			} else {
 				this.modal = new flagrate.Modal({
-					title   : '録画履歴の削除',
+					title   : '録画履歴とファイルの削除',
 					subtitle: this.program.title + ' #' + this.program.id,
-					text    : '録画履歴を削除すると、システムはこの番組の録画ファイルの場所を見失います。',
+					text    : '録画履歴とファイルを削除しますか？この操作は元に戻せません。',
 
 					buttons: [
 						{
@@ -1053,7 +1068,7 @@
 							onSelect: function (e, modal) {
 								e.targetButton.disable();
 
-								var dummy = new Ajax.Request('./api/recorded/' + this.program.id + '.json', {
+								new Ajax.Request('./api/recorded/' + this.program.id + '.json', {
 									method    : 'delete',
 									onComplete: function () {
 										modal.close();
@@ -1061,13 +1076,13 @@
 									onSuccess: function () {
 										new flagrate.Modal({
 											title: '成功',
-											text : '録画履歴の削除に成功しました'
+											text : '削除に成功しました'
 										}).show();
 									},
 									onFailure: function (t) {
 										new flagrate.Modal({
 											title: '失敗',
-											text : '録画履歴の削除に失敗しました (' + t.status + ')'
+											text : '削除に失敗しました (' + t.status + ')'
 										}).show();
 									}
 								});
@@ -1105,70 +1120,7 @@
 
 	ui.RemoveRecordedFile = Class.create({
 		initialize: function _init(id) {
-			this.program = util.getProgramById(id);
-
-			this.create();
-
-			return this;
-		},
-		create: function _create() {
-			if (this.program === null) {
-				this.modal = new flagrate.Modal({
-					title: 'エラー',
-					text : '番組が見つかりませんでした'
-				});
-			} else {
-				this.modal = new flagrate.Modal({
-					title: '録画ファイルの削除',
-					subtitle: this.program.title + ' #' + this.program.id,
-					text : '録画ファイルを削除します。これは復元できません。',
-					buttons: [
-						{
-							label  : '削除',
-							color  : '@red',
-							onSelect: function (e, modal) {
-								e.targetButton.disable();
-
-								var dummy = new Ajax.Request('./api/recorded/' + this.program.id + '/file.json', {
-									method    : 'delete',
-									onComplete: function () {
-										modal.close();
-									},
-									onSuccess: function () {
-										new flagrate.Modal({
-											title: '成功',
-											text : '録画ファイルの削除に成功しました'
-										}).show();
-									},
-									onFailure: function (t) {
-
-										var err = t.status;
-
-										if (err === 410) {
-											err += ':既に削除されています';
-										}
-
-										new flagrate.Modal({
-											title: '失敗',
-											text : '録画ファイルの削除に失敗しました (' + err + ')'
-										}).show();
-									}
-								});
-							}.bind(this)
-						},
-						{
-							label  : 'キャンセル',
-							onSelect: function (e, modal) {
-								modal.close();
-							}
-						}
-					]
-				});
-			}
-
-			this.modal.show();
-
-			return this;
+			return new ui.RemoveRecordedProgram(id);
 		}
 	});
 
@@ -1318,7 +1270,7 @@
 									input: {
 										type : 'checkboxes',
 										val  : rule.types,
-										items: ['GR', 'BS', 'CS', 'EX']
+										items: ['GR', 'BS', 'CS', 'SKY']
 									}
 								},
 								{
@@ -1328,8 +1280,8 @@
 										type : 'checkboxes',
 										val  : rule.categories,
 										items: [
-											'anime', 'information', 'news', 'sports',
-											'variety', 'drama', 'music', 'cinema', 'etc'
+											'anime', 'information', 'news', 'sports', 'variety', 'documentary',
+											'drama', 'music', 'cinema', 'theater', 'hobby', 'welfare', 'etc'
 										]
 									}
 								},
@@ -1339,7 +1291,7 @@
 									input: {
 										type : formInputTypeChannels,
 										style: { width: '100%' },
-										val  : rule.channels 
+										val  : rule.channels
 									}
 								},
 								{
@@ -1582,7 +1534,7 @@
 				var modal = new flagrate.Modal({
 					title: 'エラー',
 					text : '不正なアクセスです。'
-				}).show(); 
+				}).show();
 			} else {
 				var form = flagrate.createForm({
 					fields: [
@@ -1591,7 +1543,7 @@
 							label: 'タイプ',
 							input: {
 								type : 'checkboxes',
-								items: ['GR', 'BS', 'CS', 'EX']
+								items: ['GR', 'BS', 'CS', 'SKY']
 							}
 						},
 						{
@@ -1600,8 +1552,8 @@
 							input: {
 								type : 'checkboxes',
 								items: [
-									'anime', 'information', 'news', 'sports',
-									'variety', 'drama', 'music', 'cinema', 'etc'
+									'anime', 'information', 'news', 'sports', 'variety', 'documentary',
+									'drama', 'music', 'cinema', 'theater', 'hobby', 'welfare', 'etc'
 								]
 							}
 						},
@@ -1834,7 +1786,7 @@
 				var modal = new flagrate.Modal({
 					title: 'エラー',
 					text : '不正なアクセスです。'
-				}).show(); 
+				}).show();
 			} else {
 				var program = this.program;
 
@@ -1845,7 +1797,7 @@
 							label: 'タイプ',
 							input: {
 								type : 'checkboxes',
-								items: ['GR', 'BS', 'CS', 'EX'],
+								items: ['GR', 'BS', 'CS', 'SKY'],
 								val  : [program.channel.type]
 							}
 						},
@@ -1855,8 +1807,8 @@
 							input: {
 								type : 'checkboxes',
 								items: [
-									'anime', 'information', 'news', 'sports',
-									'variety', 'drama', 'music', 'cinema', 'etc'
+									'anime', 'information', 'news', 'sports', 'variety', 'documentary',
+									'drama', 'music', 'cinema', 'theater', 'hobby', 'welfare', 'etc'
 								],
 								val  : [program.category]
 							}
@@ -2005,7 +1957,7 @@
 								label: '有効にする',
 								val  : true
 							}
-						},
+						}
 					]
 				});
 

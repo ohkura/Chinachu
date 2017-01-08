@@ -1,47 +1,47 @@
 /*!
  *  Chinachu WebUI Server Service (chinachu-wui)
  *
- *  Copyright (c) 2012 Yuki KAN and Chinachu Project Contributors
+ *  Copyright (c) 2016 Yuki KAN and Chinachu Project Contributors
  *  https://chinachu.moe/
 **/
-/*jslint node:true, nomen:true, plusplus:true, regexp:true, vars:true, continue:true, bitwise:true */
 'use strict';
 
-var CONFIG_FILE         = __dirname + '/config.json';
-var RULES_FILE          = __dirname + '/rules.json';
-var RESERVES_DATA_FILE  = __dirname + '/data/reserves.json';
-var SCHEDULE_DATA_FILE  = __dirname + '/data/schedule.json';
-var RECORDING_DATA_FILE = __dirname + '/data/recording.json';
-var RECORDED_DATA_FILE  = __dirname + '/data/recorded.json';
-var ENCODING_DATA_FILE  = __dirname + '/data/encoding.json';
-var OPERATOR_LOG_FILE   = __dirname + '/log/operator';
-var WUI_LOG_FILE        = __dirname + '/log/wui';
-var SCHEDULER_LOG_FILE  = __dirname + '/log/scheduler';
+const CONFIG_FILE = __dirname + '/config.json';
+const RULES_FILE = __dirname + '/rules.json';
+const RESERVES_DATA_FILE = __dirname + '/data/reserves.json';
+const SCHEDULE_DATA_FILE = __dirname + '/data/schedule.json';
+const RECORDING_DATA_FILE = __dirname + '/data/recording.json';
+const RECORDED_DATA_FILE = __dirname + '/data/recorded.json';
+const OPERATOR_LOG_FILE = __dirname + '/log/operator';
+const WUI_LOG_FILE = __dirname + '/log/wui';
+const SCHEDULER_LOG_FILE = __dirname + '/log/scheduler';
 
 // Load Config
-var config = require(CONFIG_FILE);
+const pkg = require("./package.json");
+const config = require(CONFIG_FILE);
 
 // Modules
-var path          = require('path');
-var fs            = require('fs');
-var util          = require('util');
-var child_process = require('child_process');
-var url           = require('url');
-var querystring   = require('querystring');
-var vm            = require('vm');
-var os            = require('os');
-var zlib          = require('zlib');
-var events        = require('events');
-var dns           = require('dns');
-var http          = require('http');
-var https         = require('https');
-var auth          = require('http-auth');
-var socketio      = require('socket.io');
-var chinachu      = require('chinachu-common');
-var S             = require('string');
-var Podcast       = require('podcast');
-var geoip         = require('geoip-lite');
-var UPnPServer    = require('chinachu-upnp-server');
+const path = require('path');
+const fs = require('fs');
+const util = require('util');
+const child_process = require('child_process');
+const url = require('url');
+const querystring = require('querystring');
+const vm = require('vm');
+const os = require('os');
+const zlib = require('zlib');
+const events = require('events');
+const dns = require('dns');
+const http = require('http');
+const https = require('https');
+const auth = require('http-auth');
+const socketio = require('socket.io');
+const chinachu = require('chinachu-common');
+const S = require('string');
+const geoip = require('geoip-lite');
+const UPnPServer = require('chinachu-upnp-server');
+const mdns = require('mdns-js');
+const mirakurun = new (require("mirakurun").default)();
 
 // Directory Checking
 if (!fs.existsSync('./data/') || !fs.existsSync('./log/') || !fs.existsSync('./web/')) {
@@ -50,14 +50,19 @@ if (!fs.existsSync('./data/') || !fs.existsSync('./log/') || !fs.existsSync('./w
 }
 
 // SIGQUIT
-process.on('SIGQUIT', function () {
-	setTimeout(function () {
-		process.exit(0);
+process.on('SIGQUIT', () => {
+	setTimeout(() => {
+		serverMdns && serverMdns.stop()
+		openServerMdns && openServerMdns.stop()
+		// Wait stopping mDNS service
+		setTimeout(() => {
+			process.exit(0);
+		}, 1000);
 	}, 0);
 });
 
 // Uncaught Exception
-process.on('uncaughtException', function (err) {
+process.on('uncaughtException', err => {
 
 	if (err.toString() === 'Error: read ECONNRESET') {
 		util.log('ECONNRESET');
@@ -67,16 +72,42 @@ process.on('uncaughtException', function (err) {
 	console.error('uncaughtException: ' + err);
 });
 
+// Mirakurun Client
+const mirakurunPath = config.mirakurunPath || config.schedulerMirakurunPath || "http+unix://%2Fvar%2Frun%2Fmirakurun.sock/";
+
+if (/(?:\/|\+)unix:/.test(mirakurunPath) === true) {
+	const standardFormat = /^http\+unix:\/\/([^\/]+)(\/?.*)$/;
+	const legacyFormat = /^http:\/\/unix:([^:]+):?(.*)$/;
+
+	if (standardFormat.test(mirakurunPath) === true) {
+		mirakurun.socketPath = mirakurunPath.replace(standardFormat, "$1").replace(/%2F/g, "/");
+		mirakurun.basePath = path.join(mirakurunPath.replace(standardFormat, "$2"), mirakurun.basePath);
+	} else {
+		mirakurun.socketPath = mirakurunPath.replace(legacyFormat, "$1");
+		mirakurun.basePath = path.join(mirakurunPath.replace(legacyFormat, "$2"), mirakurun.basePath);
+	}
+} else {
+	const urlObject = url.parse(mirakurunPath);
+	mirakurun.host = urlObject.hostname;
+	mirakurun.port = urlObject.port;
+	mirakurun.basePath = path.join(urlObject.pathname, mirakurun.basePath);
+}
+
+mirakurun.userAgent = `Chinachu/${pkg.version} (wui)`;
+mirakurun.priority = 0;
+
+console.info(mirakurun);
+
 // etc.
-var timer = {};
-var emptyFunction = function () {};
-var status = {
+const timer = {};
+const emptyFunction = function () {};
+const status = {
 	connectedCount: 0,
 	feature: {
-		previewer   : !!config.wuiPreviewer,
-		streamer    : !!config.wuiStreamer,
-		filer       : !!config.wuiFiler,
-		configurator: !!config.wuiConfigurator,
+		previewer: true,
+		streamer: true,
+		filer: true,
+		configurator: true,
 		normalizationForm: config.normalizationForm
 	},
 	system: {
@@ -84,11 +115,11 @@ var status = {
 	},
 	operator: {
 		alive: false,
-		pid  : null
+		pid: null
 	},
 	wui: {
 		alive: false,
-		pid  : null
+		pid: null
 	}
 };
 
@@ -112,8 +143,8 @@ if (tlsEnabled) {
 }
 
 // Basic Auth
-var basic = null;
-var basicAuthEnabled = config.wuiUsers && (config.wuiUsers.length > 0);
+let basic = null;
+const basicAuthEnabled = config.wuiUsers && (config.wuiUsers.length > 0);
 if (basicAuthEnabled) {
 	basic = auth.basic({
 		realm: 'Authentication.'
@@ -123,7 +154,7 @@ if (basicAuthEnabled) {
 }
 
 // Open Server
-var openServerEnabled = config.wuiOpenServer === true;
+const openServerEnabled = config.wuiOpenServer === true;
 
 var rules     = [];
 var schedule  = [];
@@ -132,7 +163,8 @@ var recording = [];
 var recorded  = [];
 
 // Init HTTP Server
-var server, openServer, httpOpenServer, httpServer, httpServerMain;
+let server, openServer, httpOpenServer;
+let serverMdns, openServerMdns;
 
 if (tlsEnabled) {
 	if (basicAuthEnabled) {
@@ -146,21 +178,53 @@ if (tlsEnabled) {
 	} else {
 		server = http.createServer(httpServer);
 	}
-
-	console.error('**SELF-REGULATION WARNING**: If you want to access from outside of LAN, Please activate TLS.');
 }
-server.timeout = 240000;
-server.listen(config.wuiPort || 10772, config.wuiHost || '::', function () {
-	util.log((tlsEnabled ? 'HTTPS' : 'HTTP') + ' Server Listening on ' + util.inspect(server.address()));
-});
 
-// EXPERIMENTAL: Open Server for Access from LAN.
+if (config.wuiPort) {
+	server.timeout = 240000;
+
+	server.listen(config.wuiPort, config.wuiHost || '0.0.0.0', function () {
+		util.log((tlsEnabled ? 'HTTPS' : 'HTTP') + ' Server Listening on ' + util.inspect(server.address()));
+		if (config.wuiMdnsAdvertisement === true) {
+			// Start mDNS advertisement
+			serverMdns = mdns.createAdvertisement(mdns.tcp(tlsEnabled ? '_https' : '_http'), config.wuiPort, {
+				name: 'Chinachu on ' + os.hostname(),
+				host: os.hostname(),
+				txt: {
+					txtvers: '1',
+					'Version': 'gamma',
+					'Password': basicAuthEnabled
+				}
+			});
+			serverMdns.start();
+			util.log((tlsEnabled ? 'HTTPS' : 'HTTP') + ' Server mDNS advertising started.');
+		}
+	});
+
+	console.error('**DEPRECATION WARNING**: please remove `wuiPort` and use `wuiOpenServer` instead.');
+}
+
+// Open Server for Access from LAN.
 if (openServerEnabled) {
 	openServer = http.createServer(httpServer);
 	openServer.timeout = 0;
 	dns.lookup(os.hostname(), function (err, hostIp) {
 		openServer.listen(config.wuiOpenPort || 20772, config.wuiOpenHost || hostIp, function () {
 			util.log('HTTP Open Server Listening on ' + util.inspect(openServer.address()));
+			if (config.wuiMdnsAdvertisement === true) {
+				// Start mDNS advertisement
+				openServerMdns = mdns.createAdvertisement(mdns.tcp('_http'), config.wuiOpenPort || 20772, {
+					name: 'Chinachu Open Server on ' + os.hostname(),
+					host: os.hostname(),
+					txt: {
+						txtvers: '1',
+						'Version': 'gamma',
+						'Password': false
+					}
+				});
+				openServerMdns.start();
+				util.log('HTTP Open Server mDNS advertising started.');
+			}
 		});
 	});
 }
@@ -284,89 +348,88 @@ function httpServerMain(req, res, query) {
 
 		if (res.headersSent === false) {
 			res.writeHead(code, {'content-type': 'text/plain'});
-		}
-		if (req.method !== 'HEAD' && res.headersSent === false) {
-			switch (code) {
-			case 400:
-				res.write('400 Bad Request\n');
-				break;
-			case 402:
-				res.write('402 Payment Required\n');
-				break;
-			case 401:
-				res.write('401 Unauthorized\n');
-				break;
-			case 403:
-				res.write('403 Forbidden\n');
-				break;
-			case 404:
-				res.write('404 Not Found\n');
-				break;
-			case 405:
-				res.write('405 Method Not Allowed\n');
-				break;
-			case 406:
-				res.write('406 Not Acceptable\n');
-				break;
-			case 407:
-				res.write('407 Proxy Authentication Required\n');
-				break;
-			case 408:
-				res.write('408 Request Timeout\n');
-				break;
-			case 409:
-				res.write('409 Conflict\n');
-				break;
-			case 410:
-				res.write('410 Gone\n');
-				break;
-			case 411:
-				res.write('411 Length Required\n');
-				break;
-			case 412:
-				res.write('412 Precondition Failed\n');
-				break;
-			case 413:
-				res.write('413 Request Entity Too Large\n');
-				break;
-			case 414:
-				res.write('414 Request-URI Too Long\n');
-				break;
-			case 415:
-				res.write('415 Unsupported Media Type\n');
-				break;
-			case 416:
-				res.write('416 Requested Range Not Satisfiable\n');
-				break;
-			case 417:
-				res.write('417 Expectation Failed\n');
-				break;
-			case 429:
-				res.write('429 Too Many Requests\n');
-				break;
-			case 451:
-				res.write('451 Unavailable For Legal Reasons\n');
-				break;
-			case 500:
-				res.write('500 Internal Server Error\n');
-				break;
-			case 501:
-				res.write('501 Not Implemented\n');
-				break;
-			case 502:
-				res.write('502 Bad Gateway\n');
-				break;
-			case 503:
-				res.write('503 Service Unavailable\n');
-				break;
+
+			if (req.method !== 'HEAD') {
+				switch (code) {
+				case 400:
+					res.write('400 Bad Request\n');
+					break;
+				case 402:
+					res.write('402 Payment Required\n');
+					break;
+				case 401:
+					res.write('401 Unauthorized\n');
+					break;
+				case 403:
+					res.write('403 Forbidden\n');
+					break;
+				case 404:
+					res.write('404 Not Found\n');
+					break;
+				case 405:
+					res.write('405 Method Not Allowed\n');
+					break;
+				case 406:
+					res.write('406 Not Acceptable\n');
+					break;
+				case 407:
+					res.write('407 Proxy Authentication Required\n');
+					break;
+				case 408:
+					res.write('408 Request Timeout\n');
+					break;
+				case 409:
+					res.write('409 Conflict\n');
+					break;
+				case 410:
+					res.write('410 Gone\n');
+					break;
+				case 411:
+					res.write('411 Length Required\n');
+					break;
+				case 412:
+					res.write('412 Precondition Failed\n');
+					break;
+				case 413:
+					res.write('413 Request Entity Too Large\n');
+					break;
+				case 414:
+					res.write('414 Request-URI Too Long\n');
+					break;
+				case 415:
+					res.write('415 Unsupported Media Type\n');
+					break;
+				case 416:
+					res.write('416 Requested Range Not Satisfiable\n');
+					break;
+				case 417:
+					res.write('417 Expectation Failed\n');
+					break;
+				case 429:
+					res.write('429 Too Many Requests\n');
+					break;
+				case 451:
+					res.write('451 Unavailable For Legal Reasons\n');
+					break;
+				case 500:
+					res.write('500 Internal Server Error\n');
+					break;
+				case 501:
+					res.write('501 Not Implemented\n');
+					break;
+				case 502:
+					res.write('502 Bad Gateway\n');
+					break;
+				case 503:
+					res.write('503 Service Unavailable\n');
+					break;
+				}
 			}
+			log(code);
+		} else {
+			log(res.statusCode + '(!' + code + ')');
 		}
 		res.end();
-		if (res.headersSent === true) {
-			log(res.statusCode + '(!' + code + ')');
-		} else {
-			log(code);
-		}
 	};
 
 	var writeHead = function (code) {
@@ -389,7 +452,6 @@ function httpServerMain(req, res, query) {
 		if (ext === 'asf') { type = 'video/x-ms-asf'; }
 		if (ext === 'json') { type = 'application/json; charset=utf-8'; }
 		if (ext === 'xspf') { type = 'application/xspf+xml'; }
-		if (ext === 'rss') { type = 'application/rss+xml; charset=utf-8';}
 
 		var head = {
 			'Content-Type'             : type,
@@ -528,9 +590,7 @@ function httpServerMain(req, res, query) {
 
 			if (acceptEncoding.match(/deflate/)) {
 				encoding = 'deflate';
-			}/* else if (acceptEncoding.match(/gzip/)) {
-				encoding = 'gzip';
-			}*/
+			}
 
 			if (req.headers['user-agent'] && req.headers['user-agent'].match(/Trident/)) {
 				encoding = '';
@@ -546,8 +606,8 @@ function httpServerMain(req, res, query) {
 				child_process: child_process,
 				Buffer       : Buffer,
 				zlib         : zlib,
-				Podcast      : Podcast,
 				chinachu     : chinachu,
+				mirakurun    : mirakurun,
 				config       : config,
 				define: {
 					CONFIG_FILE        : CONFIG_FILE,
@@ -558,8 +618,7 @@ function httpServerMain(req, res, query) {
 					RECORDED_DATA_FILE : RECORDED_DATA_FILE,
 					OPERATOR_LOG_FILE  : OPERATOR_LOG_FILE,
 					WUI_LOG_FILE       : WUI_LOG_FILE,
-					SCHEDULER_LOG_FILE : SCHEDULER_LOG_FILE,
-					ENCODING_DATA_FILE : ENCODING_DATA_FILE
+					SCHEDULER_LOG_FILE : SCHEDULER_LOG_FILE
 				},
 				data: {
 					rules    : rules,
@@ -661,24 +720,10 @@ function httpServerMain(req, res, query) {
 	};
 
 	// 静的ファイルまたはAPIレスポンスの分岐
-	if (req.url.match(/^\/api\/.*watch\.m2ts.*$/) !== null) {
-		util.log("skipping auth for watch.m2ts");
- 	  process.nextTick(responseApi);
-	} else if (req.url.match(/^\/api\/.*watch\.m3u8.*$/) !== null) {
-		util.log("skipping auth for watch.m3u8");
- 	  process.nextTick(responseApi);
-	// } else if (req.url.match(/^\/api\/.*rss$/) !== null) {
-	// 	util.log("skipping auth for watch.rss");
- 	//   process.nextTick(responseApi);
-	} else if (req.url.match(/^\/api\/.*watch\.mp4.*$/) !== null) {
-		util.log("skipping auth for watch.mp4");
- 	  process.nextTick(responseApi);
-	} else if (req.url.match(/^\/api\/.*watch\.webm.*$/) !== null) {
-		util.log("skipping auth for watch.webm");
- 	  process.nextTick(responseApi);
-	} else if (req.url.match(/^\/api\/.*$/) === null) {
-	  if (/^web\//.test(filename) === false) { return resErr(400); }
-	  if (fs.existsSync(filename) === false) { return resErr(404); }
+	if (req.url.match(/^\/api\/.*$/) === null) {
+		if (/^web\//.test(filename) === false) { return resErr(400); }
+		if (fs.existsSync(filename) === false) { return resErr(404); }
+
 		responseStatic();
 	} else {
 		responseApi();
@@ -688,7 +733,6 @@ function httpServerMain(req, res, query) {
 //
 // socket.io server
 //
-var ioOpenServer, ioServer, ioServerMain, ioServerSocketOnDisconnect;
 
 var ios = new events.EventEmitter();
 ios.setMaxListeners(0);
@@ -699,17 +743,14 @@ function iosAddEventListner(io, eventName) {
 		for (i = 0, l = arguments.length; i < l; i++) {
 			args.push(arguments[i]);
 		}
-		io.sockets.emit.apply(io.sockets, [eventName].concat(args));
+		io.emit.apply(io, [eventName].concat(args));
 	});
 }
 
 function ioAddListener(server, isOpen) {
-	var io = socketio.listen(server);
+	var io = socketio(server);
 
-	io.enable('browser client minification');
-	io.set('log level', 1);
-	io.set('transports', ['websocket', 'flashsocket', 'htmlfile', 'xhr-polling', 'jsonp-polling']);
-	io.sockets.on('connection', isOpen ? ioOpenServer : ioServer);
+	io.on('connection', isOpen ? ioOpenServer : ioServer);
 
 	// listen event
 	iosAddEventListner(io, 'status');
@@ -791,7 +832,7 @@ if (config.wuiDLNAServerEnabled === true) {
 		logLevel: 'TRACE',
 		ssdpLog: true,
 		ssdpLogLevel: 'DEBUG',
-		name: 'Chinachu (beta)',
+		name: 'Chinachu (gamma)',
 		httpPort: 20773,
 		uuid: '49ee272d-f140-4cf0-a8cf-b7caa23ff772'
 	}, [
@@ -901,8 +942,6 @@ function processChecker() {
 					status.operator.alive = false;
 					status.operator.pid   = null;
 				} else {
-					//stdout = S(stdout.trim()).collapseWhitespace().s;
-
 					status.operator.alive = true;
 					status.operator.pid   = parseInt(pid, 10);
 				}
@@ -930,8 +969,6 @@ function processChecker() {
 					status.wui.alive = false;
 					status.wui.pid   = null;
 				} else {
-					//stdout = S(stdout.trim()).collapseWhitespace().s;
-
 					status.wui.alive = true;
 					status.wui.pid   = parseInt(pid, 10);
 				}
@@ -947,10 +984,3 @@ function processChecker() {
 	}
 }
 processChecker();
-
-//
-// gc
-//
-if (typeof gc !== 'undefined') {
-	setInterval(gc, 1000 * 60 * 2);
-}
