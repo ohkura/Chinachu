@@ -539,7 +539,7 @@ P = Class.create(P, {
 
 		var togglePlay = function() {
 			if (p._isRecording) return;
-			
+
 			if (d.use_gcast) {
 				gcastCurrentMedia.pause(null, null, null);
 			} else if (d.ext === 'webm' || d.ext === 'mp4') {
@@ -567,19 +567,19 @@ P = Class.create(P, {
 				autoplay: true,
 				controls: true
 			}).insertTo(videoContainer);
-			
+
 			new flagrate.Element('source', {
 				src     : getRequestURI(),
 				type    : 'video/' + d.ext
 			}).insertTo(video);
-			
+
 			video.addEventListener('click', togglePlay);
-			
+
 			video.volume = 1;
-			
+
 			video.play();
 		}
-		
+
 		// create control view
 
 		var control = new flagrate.Toolbar({
@@ -632,14 +632,14 @@ P = Class.create(P, {
 			seek.disable();
 			fastForward.disable();
 			fastRewind.disable();
-			
+
 			if (d.use_gcast) {
 				// hoge
 			} else {
 				video.src = uri;
 				video.play();
 			}
-			
+
 			setTimeout(function() {
 				seek.enable();
 				fastForward.enable();
@@ -690,7 +690,7 @@ P = Class.create(P, {
 			if (seek.isEnabled() === false) return;
 
 			var current = 0;
-			
+
 			if (d.use_gcast) {
 				// hoge
 			} else {

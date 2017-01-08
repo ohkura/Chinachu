@@ -10,13 +10,13 @@ function init() {
 	if (!data.status.feature.streamer) return response.error(403);
 
 	if (program.tuner && program.tuner.isScrambling) return response.error(409);
-	
+
 	var filename = program.recorded;
 	if (request.query.ext == "mp4") {
 		filename = program.mp4;
 	}
 	if (!fs.existsSync(filename)) return response.error(410);
-	
+
 	// probing
 	child_process.exec('avprobe -v 0 -show_format -of json "' + filename + '"', function (err, std) {
 		if (err) {
@@ -127,7 +127,7 @@ function main(avinfo) {
 				tsize -= bitrate / 8 * (parseInt(d.ss, 10) - 2);
 			}
 			tsize = Math.floor(tsize);
-			
+
 			if (request.query.mode == 'download') {
 				var pi = path.parse(program.recorded);
 				response.setHeader('Content-disposition', 'attachment; filename*=UTF-8\'\'' + encodeURIComponent(pi.name + '.' + request.query.ext));
@@ -237,7 +237,7 @@ function main(avinfo) {
 			}
 
 			var readStream = fs.createReadStream(filename, range || {});
-			
+
 			request.on('close', function() {
 				readStream.destroy();
 			});

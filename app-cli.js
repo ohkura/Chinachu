@@ -350,7 +350,7 @@ switch (opts.get('mode')) {
 function chinachuSearch() {
 	// matching
 	var matches = [];
-	
+
 	schedule.forEach(function(ch) {
 		ch.programs.forEach(function(p) {
 			if (isMatchedProgram(p)) {
@@ -358,15 +358,15 @@ function chinachuSearch() {
 			}
 		});
 	});
-	
+
 	// sort
 	matches.sort(function(a, b) {
 		return a.start - b.start;
 	});
-	
+
 	// table
 	var t = new Table;
-	
+
 	// output
 	matches.forEach(function(a, i) {
 		if (opts.get('num')) {
@@ -374,7 +374,7 @@ function chinachuSearch() {
 				return;
 			}
 		}
-		
+
 		t.cell('#', i);
 		if (!opts.get('simple') || opts.get('detail')) t.cell('Program ID', a.id);
 		t.cell('Type:CH', a.channel.type + ':' + a.channel.channel);
@@ -388,10 +388,10 @@ function chinachuSearch() {
 		t.cell('Dur', (a.seconds / 60) + 'm');
 		t.cell('Title', a.title);
 		if (opts.get('detail')) t.cell('Description', a.detail);
-		
+
 		t.newRow();
 	});
-	
+
 	if (matches.length === 0) {
 		console.log('見つかりません');
 	} else {
@@ -401,199 +401,199 @@ function chinachuSearch() {
 			console.log(t.toString().trim());
 		}
 	}
-	
+
 	process.exit(0);
 }
 
 // 予約
 function chinachuReserve() {
 	var target = chinachu.getProgramById(opts.get('id'), schedule);
-	
+
 	if (target === null) {
 		util.error('見つかりません');
 		process.exit(1);
 	}
-	
+
 	if (chinachu.getProgramById(opts.get('id'), reserves) !== null) {
 		util.error('既に予約されています');
 		process.exit(1);
 	}
-	
+
 	target.isManualReserved = true;
-	
+
 	if (opts.get('1seg')) {
 		target['1seg'] = true;
 	}
-	
+
 	reserves.push(target);
 	reserves.sort(function(a, b) {
 		return a.start - b.start;
 	});
-	
+
 	if (opts.get('simulation')) {
 		console.log('[simulation] reserve:');
 		console.log(JSON.stringify(target, null, '  '));
 	} else {
 		console.log('reserve:');
 		console.log(JSON.stringify(target, null, '  '));
-		
+
 		fs.writeFileSync(RESERVES_DATA_FILE, JSON.stringify(reserves));
-		
+
 		console.log('予約しました。 スケジューラーを実行して競合を確認することをお勧めします');
 	}
-	
+
 	process.exit(0);
 }
 
 // 予約解除
 function chinachuUnreserve() {
 	var target = chinachu.getProgramById(opts.get('id'), reserves);
-	
+
 	if (target === null) {
 		util.error('見つかりません');
 		process.exit(1);
 	}
-	
+
 	if (!target.isManualReserved) {
 		util.error('自動予約された番組は解除できません。自動予約ルールを編集してください');
 		process.exit(1);
 	}
-	
+
 	for (var i = 0; reserves.length > i; i++) {
 		if (target.id === reserves[i].id) {
 			reserves.splice(i, 1);
 			break;
 		}
 	}
-	
+
 	if (opts.get('simulation')) {
 		console.log('[simulation] unreserve:');
 		console.log(JSON.stringify(target, null, '  '));
 	} else {
 		console.log('unreserve:');
 		console.log(JSON.stringify(target, null, '  '));
-		
+
 		fs.writeFileSync(RESERVES_DATA_FILE, JSON.stringify(reserves));
-		
+
 		console.log('予約を解除しました。 ');
 	}
-	
+
 	process.exit(0);
 }
 
 // スキップ
 function chinachuSkip() {
 	var target = chinachu.getProgramById(opts.get('id'), reserves);
-	
+
 	if (target === null) {
 		util.error('見つかりません');
 		process.exit(1);
 	}
-	
+
 	if (target.isManualReserved) {
 		util.error('手動予約された番組はスキップできません。予約を解除してください。');
 		process.exit(1);
 	}
-	
+
 	if (target.isSkip) {
 		util.error('既にスキップが有効になっています');
 		process.exit(1);
 	}
-	
+
 	for (var i = 0, l = reserves.length; i < l; i++) {
 		if (target.id === reserves[i].id) {
 			reserves[i].isSkip = true;
 			break;
 		}
 	}
-	
+
 	if (opts.get('simulation')) {
 		console.log('[simulation] skip:');
 		console.log(JSON.stringify(target, null, '  '));
 	} else {
 		console.log('skip:');
 		console.log(JSON.stringify(target, null, '  '));
-		
+
 		fs.writeFileSync(RESERVES_DATA_FILE, JSON.stringify(reserves));
-		
+
 		console.log('スキップを有効にしました');
 	}
-	
+
 	process.exit(0);
 }
 
 // スキップ解除
 function chinachuUnskip() {
 	var target = chinachu.getProgramById(opts.get('id'), reserves);
-	
+
 	if (target === null) {
 		util.error('見つかりません');
 		process.exit(1);
 	}
-	
+
 	if (!target.isSkip) {
 		util.error('既にスキップは解除されています');
 		process.exit(1);
 	}
-	
+
 	for (var i = 0, l = reserves.length; i < l; i++) {
 		if (target.id === reserves[i].id) {
 			delete reserves[i].isSkip;
 			break;
 		}
 	}
-	
+
 	if (opts.get('simulation')) {
 		console.log('[simulation] skip:');
 		console.log(JSON.stringify(target, null, '  '));
 	} else {
 		console.log('skip:');
 		console.log(JSON.stringify(target, null, '  '));
-		
+
 		fs.writeFileSync(RESERVES_DATA_FILE, JSON.stringify(reserves));
-		
+
 		console.log('スキップを解除しました');
 	}
-	
+
 	process.exit(0);
 }
 
 // 録画中止
 function chinachuStop() {
 	var target = chinachu.getProgramById(opts.get('id'), recording);
-	
+
 	if (target === null) {
 		util.error('見つかりません');
 		process.exit(1);
 	}
-	
+
 	if (opts.get('simulation')) {
 		console.log('[simulation] stop:');
 		console.log(JSON.stringify(target, null, '  '));
 	} else {
 		console.log('stop:');
 		console.log(JSON.stringify(target, null, '  '));
-		
+
 		process.kill(target.pid, 'SIGTERM');
-		
+
 		console.log('録画を停止しました。 ');
 	}
-	
+
 	process.exit(0);
 }
 
 // Rule
 function chinachuRule() {
 	var r = {};
-	
+
 	if (opts.get('n')) {
 		r = rules[parseInt(opts.get('n'), 10)] || {};
 	}
-	
+
 	for (var i in rule) {
 		r[i] = rule[i];
 	}
-	
+
 	for (var i in r) {
 		if ((typeof r[i] === 'string') && (r[i] === 'null')) {
 			delete r[i];
@@ -607,17 +607,17 @@ function chinachuRule() {
 					delete r[i][j];
 				}
 			}
-			
+
 			if (i === 'hour' && (typeof r[i].start === 'undefined' || typeof r[i].end === 'undefined')) {
 				delete r[i];
 			}
-			
+
 			if (i === 'duration' && (typeof r[i].min === 'undefined' || typeof r[i].max === 'undefined')) {
 				delete r[i];
 			}
 		}
 	}
-	
+
 	if (JSON.stringify(r) === '{}') {
 		if (opts.get('enable') || opts.get('disable') || opts.get('remove')) {
 			util.error('見つかりません');
@@ -626,17 +626,17 @@ function chinachuRule() {
 		}
 		process.exit(1);
 	}
-	
+
 	if (opts.get('enable')) {
 		if (r.isDisabled) {
 			delete r.isDisabled;
 		}
 	}
-	
+
 	if (opts.get('disable')) {
 		r.isDisabled = true;
 	}
-	
+
 	if (opts.get('n')) {
 		if (opts.get('remove')) {
 			rules.splice(parseInt(opts.get('n'), 10), 1);
@@ -646,7 +646,7 @@ function chinachuRule() {
 	} else {
 		rules.push(r);
 	}
-	
+
 	if (opts.get('simulation')) {
 		if (opts.get('remove')) {
 			console.log('[simulation] ルールを削除します');
@@ -663,7 +663,7 @@ function chinachuRule() {
 		}
 		fs.writeFileSync(RULES_FILE, JSON.stringify(rules, null, '  '));
 	}
-	
+
 	process.exit(0);
 }
 
@@ -671,26 +671,26 @@ function chinachuRule() {
 function chinachuRuleList() {
 	// table
 	var t = new Table;
-	
+
 	// keys
 	var keys = [
 		'types', 'categories', 'channels', 'ignore_channels', 'reserve_flags',
 		'ignore_flags', 'hour', 'duration', 'reserve_titles', 'ignore_titles',
 		'reserve_descriptions', 'ignore_descriptions'
 	];
-	
+
 	// output
 	var cnt = 0;
-	
+
 	rules.forEach(function(a, i) {
 		if (opts.get('num')) {
 			if (i !== parseInt(opts.get('num'), 10)) {
 				return;
 			}
 		}
-		
+
 		t.cell('#', i);
-		
+
 		keys.forEach(function(b) {
 			switch (typeof a[b]) {
 				case 'object':
@@ -709,21 +709,21 @@ function chinachuRuleList() {
 						t.cell(b, val.join(', '), null, (val.join(', ').length > 20) ? 20 : null);
 					}
 					break;
-				
+
 				case 'string':
 					t.cell(b, a[b]);
 					break;
-				
+
 				case 'undefined':
 					t.cell(b, '-');
 					break;
 			}
 		});
-		
+
 		t.newRow();
 		++cnt;
 	});
-	
+
 	if (cnt === 0) {
 		console.log('見つかりません');
 	} else if (cnt === 1) {
@@ -735,7 +735,7 @@ function chinachuRuleList() {
 			console.log(t.toString().trim());
 		}
 	}
-	
+
 	process.exit(0);
 }
 
@@ -743,21 +743,21 @@ function chinachuRuleList() {
 function chinachuProgramList(target) {
 	// matching
 	var matches = [];
-	
+
 	target.forEach(function(p) {
 		if (isMatchedProgram(p)) {
 			matches.push(p);
 		}
 	});
-	
+
 	// sort
 	matches.sort(function(a, b) {
 		return a.start - b.start;
 	});
-	
+
 	// table
 	var t = new Table;
-	
+
 	// output
 	matches.forEach(function(a, i) {
 		if (opts.get('num')) {
@@ -765,7 +765,7 @@ function chinachuProgramList(target) {
 				return;
 			}
 		}
-		
+
 		t.cell('#', i);
 		if (!opts.get('simple') || opts.get('detail')) t.cell('Program ID', a.id);
 		t.cell('Type:CH', a.channel.type + ':' + a.channel.channel);
@@ -781,10 +781,10 @@ function chinachuProgramList(target) {
 		t.cell('Dur', (a.seconds / 60) + 'm');
 		t.cell('Title', a.title);
 		if (opts.get('detail')) t.cell('Description', a.detail);
-		
+
 		t.newRow();
 	});
-	
+
 	if (matches.length === 0) {
 		console.log('見つかりません');
 	} else {
@@ -794,21 +794,21 @@ function chinachuProgramList(target) {
 			console.log(t.toString().trim());
 		}
 	}
-	
+
 	process.exit(0);
 }
 
 // Clean-up
 function chinachuCleanup() {
 	var t = new Table;
-	
+
 	recorded = (function() {
 		var array = [];
-		
+
 		recorded.forEach(function(a) {
 			if (fs.existsSync(a.recorded)) {
 				array.push(a);
-				
+
 				t.cell('action', 'exist');
 			} else {
 				if (opts.get('simulation')) {
@@ -817,22 +817,22 @@ function chinachuCleanup() {
 					t.cell('action', 'removed');
 				}
 			}
-			
+
 			t.cell('Program ID', a.id);
 			t.cell('Recorded', a.recorded);
-			
+
 			t.newRow();
 		});
-		
+
 		return array;
 	})();
-	
+
 	if (!opts.get('simulation')) {
 		fs.writeFileSync(RECORDED_DATA_FILE, JSON.stringify(recorded));
 	}
-	
+
 	console.log(t.print().trim());
-	
+
 	process.exit(0);
 }
 
@@ -899,9 +899,9 @@ function chinachuDiskCleanup() {
 	t.cell('Recorded', f);
 	t.newRow();
     });
-	
+
     console.log(t.print().trim());
-	
+
     process.exit(0);
 }
 
@@ -912,16 +912,16 @@ function chinachuIrcbot() {
 		util.error('option : -port');
 		process.exit(1);
 	}
-	
+
 	var irc = {
 		host: opts.get('host'),
 		port: parseInt(opts.get('port') || 6667, 10),
 		ch  : opts.get('ch'),
 		nick: opts.get('nick') || 'chinachu_bot'
 	};
-	
+
 	irc.socket = new net.Socket();
-	
+
 	irc.socket.on('connect', function() {
 		util.log('接続されました...');
 		setTimeout(function() {
@@ -930,7 +930,7 @@ function chinachuIrcbot() {
 			irc.raw('JOIN ' + irc.ch);
 		}, 1000);
 	});
-	
+
 	irc.socket.on('data', function(data) {
 		data = data.split('\n');
 		for (var i = 0; i < data.length; i++) {
@@ -940,7 +940,7 @@ function chinachuIrcbot() {
 			}
 		}
 	});
-	
+
 	irc.handle = function(data) {
 		var info;
 		for (var i = 0; i < irc.listeners.length; i++) {
@@ -953,32 +953,32 @@ function chinachuIrcbot() {
 			}
 		}
 	};
-	
+
 	irc.listeners = [];
-	
+
 	irc.on = function(data, callback) {
 		irc.listeners.push([data, callback, false])
 	};
-	
+
 	irc.once = function(data, callback) {
 		irc.listeners.push([data, callback, true]);
 	};
-	
+
 	irc.raw = function(data) {
 		irc.socket.write(data + '\n', 'utf-8', function() {
 			util.log('SENT -' + data);
 		});
 	};
-	
+
 	irc.on(/^PING :(.+)$/i, function(info) {
 		irc.raw('PONG :' + info[1]);
 	});
-	
+
 	irc.on(/^:.+ PRIVMSG .+ :chinachu (.+)$/i, function(msg) {
 		util.log('CHII -' + msg[1]);
-		
+
 		var args = msg[1].split(' ');
-		
+
 		switch (args[0]) {
 			case 'search':
 			case 'rules':
@@ -990,14 +990,14 @@ function chinachuIrcbot() {
 				irc.notice(irc.ch, '無効なコマンド');
 				return;
 		}
-		
+
 		args.push('-simple');
-		
+
 		var c = child_process.spawn('./chinachu', args);
-		
+
 		c.stdout.on('data', function(data) {
 			var arr = (data + '').split('\n');
-			
+
 			if (arr.length > 20) {
 				irc.notice(irc.ch, '結果が多すぎ');
 			} else {
@@ -1011,7 +1011,7 @@ function chinachuIrcbot() {
 			}
 		});
 	});
-	
+
 	irc.join = function(chan, callback) {
 		if (callback !== undefined) {
 			irc.once(new RegExp('^:' + irc.info.nick + '![^@]+@[^ ]+ JOIN :' + chan), callback);
@@ -1019,12 +1019,12 @@ function chinachuIrcbot() {
 		irc.info.names[chan] = {};
 		irc.raw('JOIN ' + chan);
 	};
-	
+
 	irc.msg = function(chan, msg) {
 		var max_length = 500 - chan.length;
-		
+
 		var msgs = msg.match(new RegExp('.{1,' + max_length + '}', 'g'));
-		
+
 		var interval = setInterval(function() {
 			irc.raw('PRIVMSG ' + chan + ' :' + msgs[0]);
 			msgs.splice(0, 1);
@@ -1033,12 +1033,12 @@ function chinachuIrcbot() {
 			}
 		}, 1000);
 	};
-	
+
 	irc.notice = function(chan, msg) {
 		var max_length = 500 - chan.length;
-		
+
 		var msgs = msg.match(new RegExp('.{1,' + max_length + '}', 'g'));
-		
+
 		var interval = setInterval(function() {
 			irc.raw('NOTICE ' + chan + ' :' + msgs[0]);
 			msgs.splice(0, 1);
@@ -1047,7 +1047,7 @@ function chinachuIrcbot() {
 			}
 		}, 1000);
 	};
-	
+
 	irc.socket.setEncoding('utf-8');
 	irc.socket.setNoDelay();
 	irc.socket.connect(irc.port, irc.host);
@@ -1057,7 +1057,7 @@ function chinachuIrcbot() {
 function isMatchedProgram(program) {
 	var result = false;
 	var nf = config.normalizationForm;
-	
+
 	// -id, --id
 	if (opts.get('id') && (opts.get('id') === program.id)) {
 		return true;
@@ -1065,63 +1065,63 @@ function isMatchedProgram(program) {
 	if (opts.get('id') && (opts.get('id') !== program.id)) {
 		return false;
 	}
-	
+
 	(function _check() {
-		
+
 		// sid
 		if (rule.sid && rule.sid !== program.channel.sid) return;
-		
+
 		// types
 		if (rule.types) {
 			if (rule.types.indexOf(program.channel.type) === -1) return;
 		}
-		
+
 		// channels
 		if (rule.channels) {
 			if (rule.channels.indexOf(program.channel.channel) === -1) return;
 		}
-		
+
 		// ignore_channels
 		if (rule.ignore_channels) {
 			if (rule.ignore_channels.indexOf(program.channel.channel) !== -1) return;
 		}
-		
+
 		// category
 		if (rule.category && rule.category !== program.category) return;
-		
+
 		// categories
 		if (rule.categories) {
 			if (rule.categories.indexOf(program.category) === -1) return;
 		}
-		
+
 		// hour
 		if (rule.hour && (typeof rule.hour.start !== 'undefined') && (typeof rule.hour.end !== 'undefined')) {
 			var ruleStart = rule.hour.start;
 			var ruleEnd   = rule.hour.end;
-			
+
 			var progStart = new Date(program.start).getHours();
 			var progEnd   = new Date(program.end).getHours();
 			var progEndMinute = new Date(program.end).getMinutes();
-			
+
 			if (progStart > progEnd) {
 				progEnd += 24;
 			}
 			if (progEndMinute === 0 ) {
 				progEnd -= 1;
 			}
-			
+
 			if (ruleStart > ruleEnd) {
 				if ((ruleStart > progStart) && (ruleEnd < progEnd)) return;
 			} else {
 				if ((ruleStart > progStart) || (ruleEnd < progEnd)) return;
 			}
 		}
-		
+
 		// duration
 		if (rule.duration && (typeof rule.duration.min !== 'undefined') && (typeof rule.duration.max !== 'undefined')) {
 			if ((rule.duration.min > program.seconds) || (rule.duration.max < program.seconds)) return;
 		}
-		
+
 		var title_norm, detail_norm;
 		if (nf) {
 			title_norm = program.title.normalize(nf);
@@ -1140,11 +1140,11 @@ function isMatchedProgram(program) {
 				}
 			}
 		}
-		
+
 		// reserve_titles
 		if (rule.reserve_titles) {
 			var isFound = false;
-			
+
 			for (var i = 0; i < rule.reserve_titles.length; i++) {
 				if (nf) {
 					if (title_norm.match(new RegExp(rule.reserve_titles[i].normalize(nf))) !== null) isFound = true;
@@ -1153,14 +1153,14 @@ function isMatchedProgram(program) {
 					if (program.title.match(new RegExp(rule.reserve_titles[i])) !== null) isFound = true;
 				}
 			}
-			
+
 			if (!isFound) return;
 		}
-		
+
 		// ignore_descriptions
 		if (rule.ignore_descriptions) {
 			if (!program.detail) return;
-			
+
 			for (var i = 0; i < rule.ignore_descriptions.length; i++) {
 				if (nf) {
 					if (detail_norm.match(new RegExp(rule.ignore_descriptions[i].normalize(nf))) !== null) return;
@@ -1170,13 +1170,13 @@ function isMatchedProgram(program) {
 				}
 			}
 		}
-		
+
 		// reserve_descriptions
 		if (rule.reserve_descriptions) {
 			if (!program.detail) return;
-			
+
 			var isFound = false;
-			
+
 			for (var i = 0; i < rule.reserve_descriptions.length; i++) {
 				if (nf) {
 					if (detail_norm.match(new RegExp(rule.reserve_descriptions[i].normalize(nf))) !== null) isFound = true;
@@ -1185,10 +1185,10 @@ function isMatchedProgram(program) {
 					if (program.detail.match(new RegExp(rule.reserve_descriptions[i])) !== null) isFound = true;
 				}
 			}
-			
+
 			if (!isFound) return;
 		}
-		
+
 		// ignore_flags
 		if (rule.ignore_flags) {
 			for (var i = 0; i < rule.ignore_flags.length; i++) {
@@ -1197,40 +1197,40 @@ function isMatchedProgram(program) {
 				}
 			}
 		}
-		
+
 		// reserve_flags
 		if (rule.reserve_flags) {
 			if (!program.detail) return;
-			
+
 			var isFound = false;
-			
+
 			for (var i = 0; i < rule.reserve_flags.length; i++) {
 				for (var j = 0; j < program.flags.length; j++) {
 					if (rule.reserve_flags[i] === program.flags[j]) isFound = true;
 				}
 			}
-			
+
 			if (!isFound) return;
 		}
-		
+
 		result = true;
-		
+
 	})();
-	
+
 	// -now, --now
 	if (opts.get('now')) {
 		if ((clock < program.start) || (clock > program.end)) return false;
 	}
-	
+
 	// -today, --today
 	if (opts.get('today')) {
 		if (new Date(clock).getDate() !== new Date(program.start).getDate()) return false;
 	}
-	
+
 	// -tomorrow, --tomorrow
 	if (opts.get('tomorrow')) {
 		if (new Date(clock).getDate() + 1 !== new Date(program.start).getDate()) return false;
 	}
-	
+
 	return result;
 }

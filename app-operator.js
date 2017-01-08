@@ -69,7 +69,7 @@ if (config.operTweeter && config.operTweeterAuth && config.operTweeterFormat) {
 		access_token_key   : config.operTweeterAuth.accessToken,
 		access_token_secret: config.operTweeterAuth.accessTokenSecret
 	});
-	
+
 	var tweeterUpdater = function (status) {
 		tweeter.post(
 			'/statuses/update',
@@ -134,7 +134,7 @@ function isRecording(program) {
 			return true;
 		}
 	}
-	
+
 	return false;
 }
 
@@ -146,7 +146,7 @@ function isRecorded(program) {
 			return true;
 		}
 	}
-	
+
 	return false;
 }
 
@@ -170,9 +170,9 @@ function stopScheduler() {
 	process.removeListener('SIGINT',  stopScheduler);
 	process.removeListener('SIGQUIT', stopScheduler);
 	process.removeListener('SIGTERM', stopScheduler);
-	
+
 	if (scheduler === null) { return; }
-	
+
 	scheduler.kill('SIGQUIT');
 	util.log('KILL: SIGQUIT -> Scheduler (pid=' + scheduler.pid + ')');
 }
@@ -181,9 +181,9 @@ function stopScheduler() {
 function startScheduler(channel) {
 	// if ((scheduler !== null) || (recording.length !== 0)) { return; }
 	if ((scheduler !== null) || (recording.length > 4)) { return; }
-	
+
 	var output, finalize;
-	
+
 	if (channel) {
 		scheduler = child_process.spawn('node', [ 'app-scheduler.js', '-f', '-ch', channel ]);
 		util.log('SPAWN: node app-scheduler.js -f -ch ' + channel + ' (pid=' + scheduler.pid + ')');
@@ -191,23 +191,23 @@ function startScheduler(channel) {
 		scheduler = child_process.spawn('node', [ 'app-scheduler.js', '-f' ]);
 		util.log('SPAWN: node app-scheduler.js -f (pid=' + scheduler.pid + ')');
 	}
-	
+
 	// ログ用
 	output = fs.createWriteStream('./log/scheduler', { flags: 'a' });
 	util.log('STREAM: ./log/scheduler');
-	
+
 	finalize = function () {
 		try {
 			process.removeListener('SIGINT', stopScheduler);
 			process.removeListener('SIGQUIT', stopScheduler);
 			process.removeListener('SIGTERM', stopScheduler);
 		} catch (e) {}
-		
+
 		try { output.end(); } catch (ee) {}
-		
+
 		scheduler = null;
 	};
-	
+
 	scheduler.stdout.on('data', function (data) {
 		try {
 			output.write(data);
@@ -216,9 +216,9 @@ function startScheduler(channel) {
 			finalize();
 		}
 	});
-	
+
 	scheduler.once('exit', finalize);
-	
+
 	process.once('SIGINT', stopScheduler);
 	process.once('SIGQUIT', stopScheduler);
 	process.once('SIGTERM', stopScheduler);
@@ -290,14 +290,14 @@ function escapeFileName(filename) {
 // 録画実行
 function doRecord(program) {
 	var timeout, tuner, recPath, recDirPath, recCmd, recProc, recFile, /*epgInterval, */finalize;
-	
+
 	util.log('RECORD: ' + dateFormat(new Date(program.start), 'isoDateTime') + ' [' + program.channel.name + '] ' + program.title);
-	
+
 	timeout = program.end - Date.now() + offsetEnd;
-	
+
 	if (timeout < 0) {
 		util.log('FATAL: 時間超過による録画中止');
-		
+
 		// 状態を更新
 		recording.splice(recording.indexOf(program), 1);
 		fs.writeFileSync(RECORDING_DATA_FILE, JSON.stringify(recording));
@@ -313,7 +313,7 @@ function doRecord(program) {
 
 	// チューナーを選ぶ
 	tuner = chinachu.getFreeTunerSync(config.tuners, program.channel.type, false, 2);
-	
+
 	// チューナーが見つからない
 	if (tuner === null) {
 		util.log('WARNING: ' + program.channel.type + ' 利用可能なチューナーが見つかりません (存在しないかロックされています) (5秒後に再試行)');
@@ -322,7 +322,7 @@ function doRecord(program) {
 		}, 5000);
 		return;
 	}
-	
+
 	// チューナーをロック
 	try {
 		chinachu.lockTunerSync(tuner, 2);
@@ -330,20 +330,20 @@ function doRecord(program) {
 		util.log('WARNING: チューナー(' + tuner.n + ')のロックに失敗しました');
 	}
 	util.log('LOCK: ' + tuner.name + ' (n=' + tuner.n + ')');
-	
+
 	program.tuner = tuner;
-	
+
 	// 保存先パス
 	recPath = config.recordedDir + chinachu.formatRecordedName(program, program.recordedFormat || config.recordedFormat);
 	program.recorded = recPath;
-	
+
 	// 保存先ディレクトリ
 	recDirPath = recPath.replace(/^(.+)\/.+$/, '$1');
 	if (!fs.existsSync(recDirPath)) {
 		util.log('MKDIR: ' + recDirPath);
 		mkdirp.sync(recDirPath);
 	}
-	
+
 	// 録画コマンド
 	recCmd = tuner.command;
 	recCmd = recCmd.replace('<channel>', program.channel.channel);
@@ -354,42 +354,42 @@ function doRecord(program) {
 		recCmd = recCmd.replace('<sid>', program.channel.sid);
 	}
 	program.command = recCmd;
-	
+
 	execRecCmd(function () {
 		// 録画プロセスを生成
 		recProc = child_process.spawn(recCmd.split(' ')[0], recCmd.replace(/[^ ]+ /, '').split(' '));
 		chinachu.writeTunerPidSync(tuner, recProc.pid, 2);
 		util.log('SPAWN: ' + recCmd + ' (pid=' + recProc.pid + ')');
 		program.pid = recProc.pid;
-		
+
 		// 状態保存
 		fs.writeFileSync(RECORDING_DATA_FILE, JSON.stringify(recording));
 		util.log('WRITE: ' + RECORDING_DATA_FILE);
-		
+
 		// 書き込みストリームを作成
 		recFile = fs.createWriteStream(recPath, { flags: 'a' });
 		util.log('STREAM: ' + recPath);
-		
+
 		// ts出力
 		recProc.stdout.pipe(recFile);
-		
+
 		// ログ出力
 		recProc.stderr.on('data', function (data) {
 			util.log('#' + (recCmd.split(' ')[0] + ': ' + data).replace(/\n/g, ' ').trim());
 		});
-		
+
 		// お片付け
 		finalize = function () {
 			var i, l, postProcess;
-			
+
 			process.removeListener('SIGINT', finalize);
 			process.removeListener('SIGQUIT', finalize);
 			process.removeListener('SIGTERM', finalize);
 			recProc.stdout.removeAllListeners();
-			
+
 			// 書き込みストリームを閉じる
 			recFile.end();
-			
+
 			// チューナーのロックを解除
 			try {
 				chinachu.unlockTunerSync(tuner);
@@ -397,10 +397,10 @@ function doRecord(program) {
 			} catch (e) {
 				util.log(e);
 			}
-			
+
 			// EPG処理を終了
 			//clearInterval(epgInterval);
-			
+
 			// 状態を更新
 			delete program.pid;
 			for (i = 0, l = recorded.length; i < l; i++) {
@@ -437,7 +437,7 @@ function doRecord(program) {
 				postProcess = child_process.spawn(config.recordedCommand, [recPath, JSON.stringify(program)]);
 				util.log('SPAWN: ' + config.recordedCommand + ' (pid=' + postProcess.pid + ')');
 			}
-			
+
                 	// Tweeter (Experimental)
                 	if (tweeter && config.operTweeterFormat.end) {
                 	        tweeterUpdater(
@@ -452,17 +452,17 @@ function doRecord(program) {
 						.replace('<endtime>', dateFormat(new Date(program.end), "h:MM"))
                         	);
                 	}
-			
+
 			finalize = null;
 		};
 		// 録画プロセス終了時処理
 		recProc.on('exit', finalize);
-		
+
 		// 終了シグナル時処理
 		process.on('SIGINT', finalize);
 		process.on('SIGQUIT', finalize);
 		process.on('SIGTERM', finalize);
-		
+
 		// Tweeter (Experimental)
 		if (tweeter && config.operTweeterFormat.start) {
 			tweeterUpdater(
@@ -486,21 +486,21 @@ function prepRecord(program) {
 
 	program.isSigTerm = false;
 	recording.push(program);
-	
+
 	var timeout = program.start - clock - offsetStart;
 	if (timeout < 0) { timeout = 3000; }
-	
+
 	setTimeout(function () {
 		doRecord(program);
 	}, timeout);
-	
+
 	fs.writeFileSync(RECORDING_DATA_FILE, JSON.stringify(recording));
 	util.log('WRITE: ' + RECORDING_DATA_FILE);
-	
+
 	if (scheduler !== null) {
 		stopScheduler();
 	}
-	
+
 	// Tweeter (Experimental)
 	if ((timeout !== 0) && tweeter && config.operTweeterFormat.prepare) {
 		tweeterUpdater(
@@ -521,13 +521,13 @@ function prepRecord(program) {
 function reservesChecker(program, i) {
 	// スキップ または 競合
 	if (program.isSkip || program.isConflict) { return undefined; }
-	
+
 	// 予約時間超過
 	if (clock > program.end) {
 		next = 0;
 		return;
 	}
-	
+
 	// 予約準備時間内
 	if (program.start - clock <= prepTime) {
 		if (isRecording(program) === false && isRecorded(program) === false) {
@@ -540,7 +540,7 @@ function reservesChecker(program, i) {
 			startScheduler(program.channel.channel);
 		}
 	}
-	
+
 	// 次の開始時間
 	if (next === 0) {
 		next = program.start;
@@ -549,15 +549,15 @@ function reservesChecker(program, i) {
 
 // 録画中チェック
 function recordingChecker(program, i) {
-	
+
 	var timeout = program.end - clock + offsetEnd;
-	
+
 	// 録画時間内はreturn
 	if (timeout >= 0) { return; }
-	
+
 	// 録画開始していない時はreturn
 	if (!program.pid) { return; }
-	
+
 	execRecCmd(function () {
 		if (program.isSigTerm || ((typeof program.pid) === 'undefined')) {	// WAITが入った際に多重にSIGTERM発行されないようにする
 			return;
@@ -601,13 +601,13 @@ chinachu.jsonWatcher(
 			console.error(err);
 			return;
 		}
-		
+
 		reserves = data;
 		util.log(mes);
-		
+
 		if (recording.length > 0) {
 			reserves.forEach(recordingUpdater);
-			
+
 			fs.writeFileSync(RECORDING_DATA_FILE, JSON.stringify(recording));
 			util.log('WRITE: ' + RECORDING_DATA_FILE);
 		}
@@ -623,7 +623,7 @@ chinachu.jsonWatcher(
 			console.error(err);
 			return;
 		}
-		
+
 		recorded = data;
 		util.log(mes);
 	},

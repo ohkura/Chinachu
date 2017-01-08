@@ -1,33 +1,33 @@
 P = Class.create(P, {
-	
+
 	init: function() {
 		this.view.content.className = 'loading';
-		
+
 		this.initToolbar();
 		this.draw();
-		
+
 		this.onNotify = this.refresh.bindAsEventListener(this);
 		document.observe('chinachu:recorded', this.onNotify);
-		
+
 		return this;
 	}
 	,
 	deinit: function() {
-		
+
 		document.stopObserving('chinachu:recorded', this.onNotify);
-		
+
 		return this;
 	}
 	,
 	refresh: function() {
-		
+
 		this.drawMain();
-		
+
 		return this;
 	}
 	,
 	initToolbar: function _initToolbar() {
-		
+
 		this.view.toolbar.add({
 			key: 'enable-multiselect',
 			ui : new sakura.ui.Button({
@@ -89,30 +89,30 @@ P = Class.create(P, {
 				}.bind(this)
 			})
 		});
-		
+
 		return this;
 	}
 	,
 	updateToolbar: function() {
-		
+
 		if (!this.grid) return;
-		
+
 		var selected = this.grid.getSelectedRows();
-		
+
 		if (selected.length === 0) {
-			
+
 		} else if (selected.length === 1) {
-			
+
 		} else {
-			
+
 		}
 	}
 	,
 	draw: function() {
-		
+
 		this.view.content.className = '';
 		this.view.content.update();
-		
+
 		this.grid = new flagrate.Grid({
 			multiSelect  : false,
 			disableSelect: true,
@@ -175,32 +175,32 @@ P = Class.create(P, {
 				history.replaceState(null, null, '#' + this.app.pm._lastHash);
 			}.bind(this)
 		}).insertTo(this.view.content);
-		
+
 		if (this.self.query.page) {
 			this.grid.pagePosition = parseInt(this.self.query.page, 10);
 		}
-		
+
 		this.drawMain();
-		
+
 		return this;
 	}
 	,
 	drawMain: function() {
-		
+
 		var rows = [];
-		
+
 		var programs = [];
-		
+
 		for (var i = 0, l = global.chinachu.recorded.length; i < l; i++) {
 			programs.push(global.chinachu.recorded[i]);
 		}
-		
+
 		programs.sort(function(a, b) {
 			return b.start - a.start;
 		});
-		
+
 		programs.each(function(program, i) {
-			
+
 			var row = {
 				data: program,
 				cell: {
@@ -246,7 +246,7 @@ P = Class.create(P, {
 						onSelect: function() {
 							var left = (screen.width - 640) / 2;
 							var top  = (screen.height - 265) / 2;
-							
+
 							var tweetWindow = window.open(
 								'https://twitter.com/share?url=&text=' + encodeURIComponent(chinachu.util.scotify(program)),
 								'chinachu-tweet-' + program.id,
@@ -303,19 +303,19 @@ P = Class.create(P, {
 					}
 				]
 			};
-			
+
 			row.cell.type = {
 				sortAlt  : program.channel.type,
 				className: 'types',
 				html     : '<span class="' + program.channel.type + '">' + program.channel.type + '</span>'
 			};
-			
+
 			row.cell.category = {
 				sortAlt    : program.category,
 				className  : 'categories',
 				html       : '<span class="bg-cat-' + program.category + '">' + program.category + '</span>'
 			};
-			
+
 			row.cell.channel = {
 				sortAlt    : program.channel.id,
 				text       : program.channel.name,
@@ -323,7 +323,7 @@ P = Class.create(P, {
 					title: program.channel.id
 				}
 			};
-			
+
 			var titleHtml = program.flags.invoke('sub', /.+/, '<span class="flag #{0}">#{0}</span>').join('') + program.title;
 			if (program.subTitle && program.title.indexOf(program.subTitle) === -1) {
 				titleHtml += '<span class="subtitle">' + program.subTitle + '</span>';
@@ -332,14 +332,14 @@ P = Class.create(P, {
 				titleHtml += '<span class="episode">#' + program.episode + '</span>';
 			}
 			titleHtml += '<span class="id">#' + program.id + '</span>';
-			
+
 			if (program.isManualReserved) {
 				titleHtml = '<span class="flag manual">手動</span>' + titleHtml;
 			}
       if (program.mp4) {
         titleHtml = '<span class="flag manual">MP4</span>' + titleHtml;
       }
-			
+
 			row.cell.title = {
 				sortAlt    : program.title + (program.episode || 0).toString(36),
 				html       : titleHtml,
@@ -347,12 +347,12 @@ P = Class.create(P, {
 					title: program.fullTitle + ' - ' + program.detail
 				}
 			};
-			
+
 			row.cell.duration = {
 				sortAlt    : program.seconds,
 				text       : program.seconds / 60 + 'm'
 			};
-			
+
 			row.cell.datetime = {
 				sortAlt    : program.start,
 				element    : new chinachu.ui.DynamicTime({
@@ -382,9 +382,9 @@ P = Class.create(P, {
 
 			rows.push(row);
 		});
-		
+
 		this.grid.splice(0, void 0, rows);
-		
+
 		return this;
 	}
 });
