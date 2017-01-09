@@ -3,6 +3,7 @@ P = Class.create(P, {
 	init: function() {
 
 		this.view.content.className = 'loading';
+		this.enableSelect = !Prototype.Browser.MobileSafari;
 
 		this.initToolbar();
 		this.draw();
@@ -115,8 +116,8 @@ P = Class.create(P, {
 		this.view.content.update();
 
 		this.grid = new flagrate.Grid({
-			multiSelect  : true,
-			disableSelect: false,
+			multiSelect  : this.enableSelect,
+			disableSelect: !this.enableSelect,
 			pagination   : true,
 			fill         : true,
 			cols: [
@@ -159,6 +160,11 @@ P = Class.create(P, {
 				}
 			],
 			onClick: function(e, row) {
+				if (!this.enableSelect) {
+					window.location.href = '#!/program/view/id=' + row.data.id + '/';
+				}
+			}.bind(this),
+			onDblClick: function(e, row) {
 				window.location.href = '#!/program/view/id=' + row.data.id + '/';
 			},
 			onRendered: function() {
